@@ -50,7 +50,8 @@ a{color:var(--faint)}
 <div class="sub">remote control for the 4080's style lab — vote, start fresh rounds, change the source, bake. commands land within ~30s; new rounds appear here ~2 min later.</div>
 <div class="deck" id="deck"><div class="dhead" onclick="document.getElementById('deck').classList.toggle('open')">⚙ CONTROL DECK — source · pool · new round (tap to open)</div>
 <div class="dbody">
-  <div class="label">SOURCE — which master emotion the styles filter through</div>
+  <div class="label">SOURCE — the face/geometry the styles filter through</div>
+  <div class="tabs" id="srcTabs"></div>
   <div class="srcs" id="srcs">loading…</div>
   <div class="label">POOL — tap chips to add/remove from the tournament</div>
   <div class="tabs" id="tabs"></div>
@@ -71,20 +72,40 @@ const STORE=SB+'/storage/v1/object/public/style-tourney/';
 let winners=new Set(),latest=0,lastSig='',source='_dummy-neutral.png',metaDone=false;
 let POOL=[],picked=new Set(),tab='style';
 const TABS=[['style','STYLES'],['trainer','D3 TRAINERS']];
+let META=null,srcMode='phil';  // default to philosophers
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3500)}
 async function vote(body){const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify(body)});return r.ok}
 async function loadMeta(){
   if(metaDone)return;
-  try{const m=await(await fetch(STORE+'meta.json?'+Date.now())).json();
-    document.getElementById('srcs').innerHTML=m.sources.map(s=>{
-      const short=s.replace('_dummy-','').replace('.png','');
-      return `<div class="src ${s===source?'on':''}" data-s="${s}"><img loading="lazy" src="${STORE}sources/${s.replace('.png','.jpg')}"><div>${short}</div></div>`}).join('');
-    document.querySelectorAll('.src').forEach(el=>el.onclick=()=>{source=el.dataset.s;
-      document.querySelectorAll('.src').forEach(x=>x.classList.toggle('on',x.dataset.s===source))});
-    POOL=m.pool;
+  try{META=await(await fetch(STORE+'meta.json?'+Date.now())).json();
+    if(META.phils&&META.phils.length){source='phil:'+(META.phils.includes('marcus_aurelius')?'marcus_aurelius':META.phils[0])}
+    else{srcMode='emotion';source='_dummy-neutral.png'}
+    renderSrcTabs();renderSrcs();
+    POOL=META.pool;
     picked=new Set(POOL.filter(p=>p.default).map(p=>p.file));  // styles pre-picked
     renderTabs();renderChips();
     metaDone=true}catch(e){}
+}
+function renderSrcTabs(){
+  const tabs=[['phil','PHILOSOPHERS '+((META.phils||[]).length)],['emotion','DUMMY EMOTIONS']];
+  document.getElementById('srcTabs').innerHTML=tabs.map(([k,l])=>`<button class="tab ${srcMode===k?'on':''}" data-sm="${k}">${l}</button>`).join('');
+  document.querySelectorAll('[data-sm]').forEach(b=>b.onclick=()=>{srcMode=b.dataset.sm;
+    source=srcMode==='phil'?('phil:'+(META.phils[0])):'_dummy-neutral.png';renderSrcTabs();renderSrcs()});
+}
+function renderSrcs(){
+  let html;
+  if(srcMode==='phil'){
+    html=(META.phils||[]).map(slug=>{
+      const on='phil:'+slug===source;
+      return `<div class="src ${on?'on':''}" data-s="phil:${slug}"><img loading="lazy" src="${STORE}phils/${slug}.jpg"><div>${slug.replace(/_/g,' ')}</div></div>`}).join('');
+  }else{
+    html=(META.sources||[]).map(s=>{
+      const on=s===source;
+      return `<div class="src ${on?'on':''}" data-s="${s}"><img loading="lazy" src="${STORE}sources/${s.replace('.png','.jpg')}"><div>${s.replace('_dummy-','').replace('.png','')}</div></div>`}).join('');
+  }
+  document.getElementById('srcs').innerHTML=html;
+  document.querySelectorAll('.src[data-s]').forEach(el=>el.onclick=()=>{source=el.dataset.s;
+    document.querySelectorAll('.src').forEach(x=>x.classList.toggle('on',x.dataset.s===source))});
 }
 function renderTabs(){
   document.getElementById('tabs').innerHTML=TABS.map(([k,lbl])=>{
