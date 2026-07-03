@@ -1,0 +1,93 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D3 BLEND BATCH</title><style>
+:root{--bg:#0a0a0c;--card:#16161c;--border:#2a2a35;--gold:#d4af37;--text:#e0ddd5;--faint:#7a7a88;--cyan:#00d9ff}
+*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:14px;max-width:1200px;margin:0 auto;padding-bottom:120px}
+h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size:16px}
+.sub{color:var(--faint);font-size:12px;margin:3px 0 12px}
+.pbar{height:10px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden;margin-bottom:6px}
+.pfill{height:100%;background:linear-gradient(90deg,var(--gold),#f0d060);width:0%;transition:width .6s}
+.pmsg{font-family:Consolas,monospace;font-size:11px;color:var(--cyan);margin-bottom:14px;min-height:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:7px}
+.cell{background:var(--card);border:2px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;position:relative}
+.cell img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.cell .n{position:absolute;top:2px;left:4px;font-family:Consolas,monospace;font-size:9px;color:var(--gold);text-shadow:0 0 3px #000}
+.cell.on{border-color:var(--gold);box-shadow:0 0 10px rgba(212,175,55,.5)}
+.cell.on::after{content:'✓';position:absolute;top:2px;right:5px;color:var(--gold);font-weight:700}
+.tray{position:fixed;bottom:0;left:0;right:0;background:#111115;border-top:1px solid var(--gold);padding:10px 14px;max-height:46vh;overflow-y:auto}
+.tray h3{font-family:Consolas,monospace;font-size:11px;letter-spacing:2px;color:var(--gold);margin-bottom:8px}
+.trow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.trow img{width:40px;height:40px;border-radius:6px;object-fit:cover}
+.trow .lbl{font-family:Consolas,monospace;font-size:10px;color:var(--faint);width:52px}
+.trow input[type=range]{flex:1;accent-color:var(--gold)}
+.trow .pct{font-family:Consolas,monospace;font-size:11px;color:var(--gold);width:38px;text-align:right}
+.trow .x{color:var(--faint);cursor:pointer;padding:0 4px}
+button{background:rgba(212,175,55,.14);color:var(--gold);border:1px solid rgba(212,175,55,.5);border-radius:8px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;min-height:46px}
+button:disabled{opacity:.35}
+.empty{color:var(--faint);font-size:12px;padding:20px 0;text-align:center}
+#toast{position:fixed;bottom:50vh;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:99}
+a{color:var(--gold)}
+</style></head><body>
+<h1>D3 BLEND BATCH</h1>
+<div class="sub">120 distinct blends of your LoRA pool · tap favorites → set % of each → MIX. <a href="index.html">← tournament</a></div>
+<div class="pbar"><div class="pfill" id="pfill"></div></div>
+<div class="pmsg" id="pmsg">loading…</div>
+<div class="grid" id="grid"></div>
+<div class="tray"><h3>MIX TRAY — <span id="trayCount">0</span> selected</h3>
+  <div id="trayRows"><div class="empty">tap blends above to add them here</div></div>
+  <button id="mixBtn" disabled style="width:100%;margin-top:6px">🎨 MIX SELECTED → 4 RENDERS</button>
+</div>
+<div id="toast"></div>
+<script>
+const SB='https://hwqovzizjoelzfulhxem.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cW92eml6am9lbHpmdWxoeGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzU5MTQsImV4cCI6MjA5NDIxMTkxNH0.U-4EkTX5FuvRwncQnejAQUaPLCLRyE8yk1uCQfz8XdU';
+const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
+const STORE=SB+'/storage/v1/object/public/style-tourney/';
+let items=[],picked=new Map(),sig='';
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
+async function poll(){
+  try{
+    const st=await(await fetch(STORE+'status.json?'+Date.now())).json();
+    document.getElementById('pfill').style.width=st.total?Math.round(100*st.done/st.total)+'%':'0%';
+    document.getElementById('pmsg').textContent=(st.busy?'⏳ ':'✓ ')+st.msg;
+  }catch(e){}
+  try{
+    const b=await(await fetch(STORE+'batch.json?'+Date.now())).json();
+    const s=JSON.stringify(b.items.map(x=>x.i));
+    if(s!==sig){sig=s;items=b.items;renderGrid()}
+  }catch(e){document.getElementById('pmsg').textContent='no batch yet — start one from the Style Lab or /api/batch'}
+}
+function renderGrid(){
+  document.getElementById('grid').innerHTML=items.map(it=>
+    `<div class="cell ${picked.has(it.i)?'on':''}" data-i="${it.i}"><span class="n">#${it.i}</span><img loading="lazy" src="${it.url}"></div>`).join('');
+  document.querySelectorAll('.cell').forEach(c=>c.onclick=()=>{
+    const i=+c.dataset.i;
+    if(picked.has(i))picked.delete(i);else picked.set(i,60);
+    c.classList.toggle('on');renderTray()});
+}
+function renderTray(){
+  document.getElementById('trayCount').textContent=picked.size;
+  const rows=document.getElementById('trayRows');
+  if(!picked.size){rows.innerHTML='<div class="empty">tap blends above to add them here</div>';document.getElementById('mixBtn').disabled=true;return}
+  document.getElementById('mixBtn').disabled=false;
+  rows.innerHTML=[...picked.entries()].map(([i,pct])=>{
+    const it=items.find(x=>x.i===i);
+    return `<div class="trow"><img src="${it?it.url:''}"><span class="lbl">#${i}</span>
+      <input type="range" min="10" max="100" value="${pct}" data-i="${i}">
+      <span class="pct" id="pct${i}">${pct}%</span><span class="x" data-x="${i}">✕</span></div>`}).join('');
+  rows.querySelectorAll('input[type=range]').forEach(r=>r.oninput=()=>{
+    const i=+r.dataset.i;picked.set(i,+r.value);document.getElementById('pct'+i).textContent=r.value+'%'});
+  rows.querySelectorAll('[data-x]').forEach(x=>x.onclick=()=>{const i=+x.dataset.x;picked.delete(i);
+    document.querySelector(`.cell[data-i="${i}"]`)?.classList.remove('on');renderTray()});
+}
+document.getElementById('mixBtn').onclick=()=>{
+  const btn=document.getElementById('mixBtn');btn.disabled=true;btn.textContent='🎨 SENDING…';
+  const picks=[...picked.entries()].map(([i,pct])=>({i,pct:pct/100}));
+  setTimeout(async()=>{
+    try{const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'mix',picks})});
+      toast(r.ok?'mix sent — 4 renders in ~1 min (see tournament page)':'send failed')}
+    catch(e){toast('offline?')}
+    setTimeout(()=>{btn.disabled=false;btn.textContent='🎨 MIX SELECTED → 4 RENDERS'},2000);
+  },0);
+};
+poll();setInterval(poll,6000);
+</script></body></html>
