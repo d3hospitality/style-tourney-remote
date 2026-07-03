@@ -57,7 +57,9 @@ a{color:var(--faint)}
   <div style="margin-bottom:8px"><button class="tab" id="tAll" style="padding:6px 12px">✓ all in tab</button> <button class="tab" id="tNone" style="padding:6px 12px">✕ clear tab</button></div>
   <div class="chips" id="chips"></div>
   <div class="selrow" id="selrow"></div>
-  <div style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap"><button class="cy" id="newRound" style="min-height:46px">🎲 NEW RANDOM ROUND FROM THESE</button><button id="restartBtn" style="min-height:46px;color:var(--faint);border-color:var(--border);background:transparent">⟲ RESTART TOURNEY (round 1)</button></div>
+  <div class="label">FLAVOR — art direction injected into every candidate's prompt</div>
+  <textarea id="flavor" placeholder="e.g. 32-bit SNES JRPG portrait, Final Fantasy VI hero, Metal Gear tactical aesthetic, moody cinematic lighting" style="width:100%;min-height:60px;background:#0d0d11;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px;font-family:inherit"></textarea>
+  <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap"><button class="cy" id="newRound" style="min-height:46px">🎲 NEW RANDOM ROUND FROM THESE</button><button id="restartBtn" style="min-height:46px;color:var(--faint);border-color:var(--border);background:transparent">⟲ RESTART TOURNEY (round 1)</button></div>
 </div></div>
 <div id="rounds">loading…</div>
 <div id="toast"></div>
@@ -111,6 +113,8 @@ async function load(){
   if(!rounds.length){document.getElementById('rounds').innerHTML='<div class="sub">no rounds synced yet — start one from the CONTROL DECK above, or in the Style Lab on the PC</div>';return}
   const sig=JSON.stringify(rounds.map(r=>r.round));
   latest=rounds[0].round;
+  const fEl=document.getElementById('flavor');
+  if(rounds[0].flavor&&document.activeElement!==fEl&&!fEl.value)fEl.value=rounds[0].flavor;
   const voted=votes.some(v=>v.round===latest&&v.action!=='new_round');
   if(sig===lastSig){refreshButtons(voted);return}
   lastSig=sig;winners.clear();
@@ -144,12 +148,13 @@ function refreshButtons(voted){
 // fire the network AFTER the current paint so tapping feels instant (no INP lag)
 function sendLater(body,okMsg){setTimeout(async()=>{
   try{(await vote(body))?toast(okMsg):toast('send failed — check connection')}catch(e){toast('send failed — offline?')}},0)}
+function flavorVal(){return document.getElementById('flavor').value.trim()}
 document.getElementById('newRound').onclick=()=>{
   const btn=document.getElementById('newRound');
   if(picked.size<2){toast('tap at least 2 chips');return}
   btn.disabled=true;btn.textContent='🎲 SENDING…';
   setTimeout(()=>{btn.disabled=false;btn.textContent='🎲 NEW RANDOM ROUND FROM THESE'},2500);
-  sendLater({action:'new_round',source,pool:[...picked]},'new round sent — fresh blends in ~2 min');
+  sendLater({action:'new_round',source,pool:[...picked],flavor:flavorVal()},'new round sent — fresh blends in ~2 min');
 };
 let restartArmed=false;
 document.getElementById('restartBtn').onclick=()=>{
@@ -159,7 +164,7 @@ document.getElementById('restartBtn').onclick=()=>{
     setTimeout(()=>{restartArmed=false;btn.textContent='⟲ RESTART TOURNEY (round 1)';btn.style.color='var(--faint)'},4000);return}
   restartArmed=false;btn.textContent='⟲ SENDING…';btn.style.color='var(--faint)';
   lastSig='';winners.clear();
-  sendLater({action:'restart',source,pool:[...picked]},'restart sent — fresh round 1 in ~2 min');
+  sendLater({action:'restart',source,pool:[...picked],flavor:flavorVal()},'restart sent — fresh round 1 in ~2 min');
   setTimeout(()=>{btn.textContent='⟲ RESTART TOURNEY (round 1)'},2500);
 };
 document.getElementById('tAll').onclick=()=>{POOL.filter(p=>(p.cat||'style')===tab).forEach(p=>picked.add(p.file));renderTabs();renderChips()};
