@@ -112,11 +112,15 @@ document.getElementById('newRound').onclick=async()=>{
   if(pool.length<2){toast('check at least 2 pool LoRAs');return}
   (await vote({action:'new_round',source,pool}))?toast('new round command sent — fresh blends in ~2 min'):toast('failed');
 };
+let restartArmed=false;
 document.getElementById('restartBtn').onclick=async()=>{
-  if(!confirm('RESTART THE TOURNAMENT?\nWipes all rounds and starts fresh at round 1 with the selected source + pool.'))return;
+  const btn=document.getElementById('restartBtn');
   const pool=[...document.querySelectorAll('.poolgrid input:checked')].map(i=>i.value);
   if(pool.length<2){toast('check at least 2 pool LoRAs');return}
-  if(await vote({action:'restart',source,pool})){toast('restart sent — fresh round 1 in ~2 min');lastSig='';winners.clear()}else toast('failed');
+  if(!restartArmed){restartArmed=true;btn.textContent='⚠ TAP AGAIN TO WIPE + RESTART';btn.style.color='#f87171';
+    setTimeout(()=>{restartArmed=false;btn.textContent='⟲ RESTART TOURNEY (round 1)';btn.style.color='var(--faint)'},4000);return}
+  restartArmed=false;btn.textContent='⟲ RESTART TOURNEY (round 1)';btn.style.color='var(--faint)';
+  if(await vote({action:'restart',source,pool})){toast('restart sent — fresh round 1 in ~2 min');lastSig='';winners.clear()}else toast('send failed — check connection');
 };
 document.getElementById('pAll').onclick=e=>{e.preventDefault();document.querySelectorAll('.poolgrid input').forEach(i=>i.checked=true)};
 document.getElementById('pNone').onclick=e=>{e.preventDefault();document.querySelectorAll('.poolgrid input').forEach(i=>i.checked=false)};
