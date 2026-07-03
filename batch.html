@@ -30,7 +30,9 @@ a{color:var(--gold)}
 <h1>D3 BLEND BATCH</h1>
 <div class="sub">120 distinct blends of your LoRA pool · tap favorites → set % of each → MIX. <a href="index.html">← tournament</a></div>
 <div class="pbar"><div class="pfill" id="pfill"></div></div>
-<div class="pmsg" id="pmsg">loading…</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="pmsg" id="pmsg" style="margin-bottom:0">loading…</div>
+<button id="stopBatch" style="padding:7px 14px;min-height:0;color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1);display:none">■ STOP</button></div>
+<div style="height:6px"></div>
 <div class="grid" id="grid"></div>
 <div class="tray"><h3>MIX TRAY — <span id="trayCount">0</span> selected</h3>
   <div id="trayRows"><div class="empty">tap blends above to add them here</div></div>
@@ -49,6 +51,7 @@ async function poll(){
     const st=await(await fetch(STORE+'status.json?'+Date.now())).json();
     document.getElementById('pfill').style.width=st.total?Math.round(100*st.done/st.total)+'%':'0%';
     document.getElementById('pmsg').textContent=(st.busy?'⏳ ':'✓ ')+st.msg;
+    document.getElementById('stopBatch').style.display=st.busy?'':'none';
   }catch(e){}
   try{
     const b=await(await fetch(STORE+'batch.json?'+Date.now())).json();
@@ -88,6 +91,13 @@ document.getElementById('mixBtn').onclick=()=>{
     catch(e){toast('offline?')}
     setTimeout(()=>{btn.disabled=false;btn.textContent='🎨 MIX SELECTED → 4 RENDERS'},2000);
   },0);
+};
+let stopArmed=false;
+document.getElementById('stopBatch').onclick=()=>{
+  const b=document.getElementById('stopBatch');
+  if(!stopArmed){stopArmed=true;b.textContent='■ TAP AGAIN';setTimeout(()=>{stopArmed=false;b.textContent='■ STOP'},3000);return}
+  stopArmed=false;b.textContent='■ STOPPING…';
+  setTimeout(async()=>{try{await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'stop'})});toast('stop sent — halts after current blend')}catch(e){toast('failed')}},0);
 };
 poll();setInterval(poll,6000);
 </script></body></html>

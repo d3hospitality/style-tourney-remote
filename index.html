@@ -48,6 +48,15 @@ a{color:var(--faint)}
 </style></head><body>
 <h1>D3 STYLE TOURNEY</h1>
 <div class="sub">remote control for the 4080's style lab — vote, start fresh rounds, change the source, bake. commands land within ~30s; new rounds appear here ~2 min later.</div>
+<div id="batchTracker" style="display:none;background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:11px 13px;margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="font-family:Consolas,monospace;font-size:11px;letter-spacing:2px;color:var(--gold)">🔢 BIG BATCH</span>
+    <span style="display:flex;gap:8px"><a href="batch.html" style="text-decoration:none"><button style="padding:7px 12px;min-height:0">▦ OPEN OVERVIEW</button></a>
+    <button id="stopBatch" style="padding:7px 14px;min-height:0;color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1)">■ STOP</button></span>
+  </div>
+  <div style="height:9px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden;margin-top:9px"><div id="btFill" style="height:100%;background:linear-gradient(90deg,var(--gold),#f0d060);width:0%;transition:width .6s"></div></div>
+  <div id="btMsg" style="font-family:Consolas,monospace;font-size:10.5px;color:var(--cyan);margin-top:5px"></div>
+</div>
 <div class="deck" id="deck"><div class="dhead" onclick="document.getElementById('deck').classList.toggle('open')">⚙ CONTROL DECK — source · pool · new round (tap to open)</div>
 <div class="dbody">
   <div class="label">SOURCE — the face/geometry the styles filter through</div>
@@ -190,5 +199,26 @@ document.getElementById('restartBtn').onclick=()=>{
 };
 document.getElementById('tAll').onclick=()=>{POOL.filter(p=>(p.cat||'style')===tab).forEach(p=>picked.add(p.file));renderTabs();renderChips()};
 document.getElementById('tNone').onclick=()=>{POOL.filter(p=>(p.cat||'style')===tab).forEach(p=>picked.delete(p.file));renderTabs();renderChips()};
+// BIG BATCH tracker — polls status.json, shows bar + STOP while a batch runs
+let batchSeenBusy=false;
+async function pollBatch(){
+  try{
+    const st=await(await fetch(STORE+'status.json?'+Date.now())).json();
+    const tr=document.getElementById('batchTracker');
+    const pct=st.total?Math.round(100*st.done/st.total):0;
+    if(st.busy){batchSeenBusy=true;tr.style.display='';document.getElementById('btFill').style.width=pct+'%';
+      document.getElementById('btMsg').textContent='⏳ '+st.done+'/'+st.total+' — '+st.msg;}
+    else if(batchSeenBusy){tr.style.display='';document.getElementById('btFill').style.width='100%';
+      document.getElementById('btMsg').textContent='✓ '+st.msg;}
+  }catch(e){}
+}
+let stopArmed=false;
+document.getElementById('stopBatch').onclick=()=>{
+  const b=document.getElementById('stopBatch');
+  if(!stopArmed){stopArmed=true;b.textContent='■ TAP AGAIN TO STOP';setTimeout(()=>{stopArmed=false;b.textContent='■ STOP'},3000);return}
+  stopArmed=false;b.textContent='■ STOPPING…';
+  setTimeout(async()=>{try{await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'stop'})});toast('stop sent — batch halts after current blend')}catch(e){toast('failed')}setTimeout(()=>b.textContent='■ STOP',2500)},0);
+};
+pollBatch();setInterval(pollBatch,5000);
 load();setInterval(load,20000);
 </script></body></html>
