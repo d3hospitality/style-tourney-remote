@@ -46,7 +46,7 @@ a{color:var(--faint)}
   <div class="srcs" id="srcs">loading…</div>
   <div class="label">POOL — who competes (<a href="#" id="pAll">all</a> / <a href="#" id="pNone">none</a>)</div>
   <div class="poolgrid" id="poolgrid"></div>
-  <div style="margin-top:12px"><button class="cy" id="newRound">🎲 NEW RANDOM ROUND FROM THESE</button></div>
+  <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap"><button class="cy" id="newRound">🎲 NEW RANDOM ROUND FROM THESE</button><button id="restartBtn" style="color:var(--faint);border-color:var(--border);background:transparent">⟲ RESTART TOURNEY (round 1)</button></div>
 </div></div>
 <div id="rounds">loading…</div>
 <div id="toast"></div>
@@ -111,6 +111,12 @@ document.getElementById('newRound').onclick=async()=>{
   const pool=[...document.querySelectorAll('.poolgrid input:checked')].map(i=>i.value);
   if(pool.length<2){toast('check at least 2 pool LoRAs');return}
   (await vote({action:'new_round',source,pool}))?toast('new round command sent — fresh blends in ~2 min'):toast('failed');
+};
+document.getElementById('restartBtn').onclick=async()=>{
+  if(!confirm('RESTART THE TOURNAMENT?\nWipes all rounds and starts fresh at round 1 with the selected source + pool.'))return;
+  const pool=[...document.querySelectorAll('.poolgrid input:checked')].map(i=>i.value);
+  if(pool.length<2){toast('check at least 2 pool LoRAs');return}
+  if(await vote({action:'restart',source,pool})){toast('restart sent — fresh round 1 in ~2 min');lastSig='';winners.clear()}else toast('failed');
 };
 document.getElementById('pAll').onclick=e=>{e.preventDefault();document.querySelectorAll('.poolgrid input').forEach(i=>i.checked=true)};
 document.getElementById('pNone').onclick=e=>{e.preventDefault();document.querySelectorAll('.poolgrid input').forEach(i=>i.checked=false)};
