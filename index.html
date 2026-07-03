@@ -48,6 +48,7 @@ a{color:var(--faint)}
 </style></head><body>
 <h1>D3 STYLE TOURNEY</h1>
 <div class="sub">remote control for the 4080's style lab — vote, start fresh rounds, change the source, bake. commands land within ~30s; new rounds appear here ~2 min later.</div>
+<div style="margin-bottom:14px"><a href="batch.html" style="text-decoration:none"><button style="width:100%;min-height:48px;color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.14)">▦ OPEN BIG BATCH OVERVIEW <span id="batchCount" style="color:var(--faint);font-weight:400"></span></button></a></div>
 <div id="batchTracker" style="display:none;background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:11px 13px;margin-bottom:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
     <span style="font-family:Consolas,monospace;font-size:11px;letter-spacing:2px;color:var(--gold)">🔢 BIG BATCH</span>
@@ -208,9 +209,12 @@ async function pollBatch(){
     const st=await(await fetch(STORE+'status.json?'+Date.now())).json();
     const tr=document.getElementById('batchTracker');
     const pct=st.total?Math.round(100*st.done/st.total):0;
-    if(st.busy){batchSeenBusy=true;tr.style.display='';document.getElementById('btFill').style.width=pct+'%';
+    // count for the always-visible overview button
+    try{const bd=await(await fetch(STORE+'batch.json?'+Date.now())).json();
+      if(bd.items&&bd.items.length)document.getElementById('batchCount').textContent='('+bd.items.length+' blends)';}catch(e){}
+    if(st.busy){tr.style.display='';document.getElementById('btFill').style.width=pct+'%';
       document.getElementById('btMsg').textContent='⏳ '+st.done+'/'+st.total+' — '+st.msg;}
-    else if(batchSeenBusy){tr.style.display='';document.getElementById('btFill').style.width='100%';
+    else if(st.done>0){tr.style.display='';document.getElementById('btFill').style.width='100%';
       document.getElementById('btMsg').textContent='✓ '+st.msg;}
   }catch(e){}
 }
