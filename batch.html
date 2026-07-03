@@ -38,9 +38,11 @@ a{color:var(--gold)}
   <div id="trayRows"><div class="empty">tap blends above to add them here</div></div>
   <div style="display:flex;gap:8px;margin-top:6px">
     <button id="mixBtn" disabled style="flex:1">🎨 MIX (use % sliders)</button>
-    <button id="shufBtn" disabled style="flex:1;color:var(--cyan);border-color:rgba(0,217,255,.5);background:rgba(0,217,255,.1)">🔀 SHUFFLE 20 FROM FAVS</button>
+    <button id="shufBtn" disabled style="flex:1;color:var(--cyan);border-color:rgba(0,217,255,.5);background:rgba(0,217,255,.1)">🔀 SHUFFLE 20</button>
+    <button id="saveBtn" disabled style="flex:1;color:#4ade80;border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.1)">💾 SAVE TO LIBRARY</button>
   </div>
-  <div style="font-size:10px;color:var(--faint);margin-top:5px">MIX = render your weighted blend · SHUFFLE = 20 new combos from just these favorites' LoRAs (overwrites the grid)</div>
+  <div style="font-size:10px;color:var(--faint);margin-top:5px">MIX = render your weighted blend · SHUFFLE = 20 new from these favs · SAVE = store this weighted blend as a named style for the Sprite Studio</div>
+  <div id="libView" style="margin-top:10px"></div>
 </div>
 <div id="toast"></div>
 <script>
@@ -74,9 +76,10 @@ function renderGrid(){
 function renderTray(){
   document.getElementById('trayCount').textContent=picked.size;
   const rows=document.getElementById('trayRows');
-  if(!picked.size){rows.innerHTML='<div class="empty">tap blends above to add them here</div>';document.getElementById('mixBtn').disabled=true;document.getElementById('shufBtn').disabled=true;return}
+  if(!picked.size){rows.innerHTML='<div class="empty">tap blends above to add them here</div>';document.getElementById('mixBtn').disabled=true;document.getElementById('shufBtn').disabled=true;document.getElementById('saveBtn').disabled=true;return}
   document.getElementById('mixBtn').disabled=false;
   document.getElementById('shufBtn').disabled=false;
+  document.getElementById('saveBtn').disabled=false;
   rows.innerHTML=[...picked.entries()].map(([i,pct])=>{
     const it=items.find(x=>x.i===i);
     return `<div class="trow"><img src="${it?it.url:''}"><span class="lbl">#${i}</span>
@@ -110,8 +113,28 @@ document.getElementById('shufBtn').onclick=()=>{
   setTimeout(async()=>{
     try{const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'shuffle',picks:favs})});
       toast(r.ok?'shuffle sent — 20 new blends from your favs (~6 min)':'send failed')}catch(e){toast('offline?')}
-    setTimeout(()=>{btn.disabled=false;btn.textContent='🔀 SHUFFLE 20 FROM FAVS'},2500);
+    setTimeout(()=>{btn.disabled=false;btn.textContent='🔀 SHUFFLE 20'},2500);
   },0);
 };
+document.getElementById('saveBtn').onclick=()=>{
+  const name=prompt('Name this style blend (it becomes a reusable reference in the Sprite Studio):','');
+  if(!name||!name.trim())return;
+  const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='💾 SAVING…';
+  const picks=[...picked.entries()].map(([i,pct])=>({i,pct:pct/100}));
+  setTimeout(async()=>{
+    try{const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'save',name:name.trim(),picks})});
+      toast(r.ok?'saved "'+name.trim()+'" to the library':'save failed')}catch(e){toast('offline?')}
+    setTimeout(()=>{btn.disabled=false;btn.textContent='💾 SAVE TO LIBRARY';loadLib()},3000);
+  },0);
+};
+async function loadLib(){
+  try{
+    const d=await(await fetch(STORE+'library.json?'+Date.now())).json();
+    const bl=d.blends||[];
+    document.getElementById('libView').innerHTML='<div style="font-family:Consolas,monospace;font-size:10px;letter-spacing:2px;color:#4ade80;margin-bottom:5px">📚 SAVED BLENDS ('+bl.length+')</div>'+
+      (bl.length?bl.map(b=>`<div style="font-family:Consolas,monospace;font-size:10.5px;color:var(--text);padding:2px 0">${b.name} <span style="color:var(--faint)">· ${b.loras.length} LoRAs${b.emotion?' · '+b.emotion:''}</span></div>`).join(''):'<div style="color:var(--faint);font-size:11px">none yet — pick favs and SAVE</div>');
+  }catch(e){}
+}
+loadLib();
 poll();setInterval(poll,6000);
 </script></body></html>
