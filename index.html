@@ -126,11 +126,11 @@ async function load(){
   document.querySelectorAll('.cand:not(.dis)').forEach(c=>c.onclick=()=>{
     const i=+c.dataset.i;winners.has(i)?winners.delete(i):winners.add(i);c.classList.toggle('win');refreshButtons(false)});
   const send=document.getElementById('send');
-  if(send)send.onclick=async()=>{send.disabled=true;
-    (await vote({round:latest,winners:[...winners],action:'breed'}))?toast('sent — breeding round '+(latest+1)):toast('failed')};
+  if(send)send.onclick=()=>{send.disabled=true;send.textContent='SENDING…';
+    sendLater({round:latest,winners:[...winners],action:'breed'},'sent — breeding round '+(latest+1))};
   const bake=document.getElementById('bakeBtn');
-  if(bake)bake.onclick=async()=>{if(winners.size!==1)return;bake.disabled=true;
-    (await vote({round:latest,winners:[],action:'bake',bake:[...winners][0]}))?toast('bake command sent — 60 images rendering on the 4080'):toast('failed')};
+  if(bake)bake.onclick=()=>{if(winners.size!==1)return;bake.disabled=true;bake.textContent='🔥 SENDING…';
+    sendLater({round:latest,winners:[],action:'bake',bake:[...winners][0]},'bake sent — 60 images rendering on the 4080')};
   refreshButtons(voted);
 }
 function refreshButtons(voted){
@@ -141,18 +141,26 @@ function refreshButtons(voted){
   send.textContent=winners.size?`SEND ${winners.size} → BREED R${latest+1}`:'SEND → BREED';
   if(bake)bake.disabled=winners.size!==1;
 }
-document.getElementById('newRound').onclick=async()=>{
+// fire the network AFTER the current paint so tapping feels instant (no INP lag)
+function sendLater(body,okMsg){setTimeout(async()=>{
+  try{(await vote(body))?toast(okMsg):toast('send failed — check connection')}catch(e){toast('send failed — offline?')}},0)}
+document.getElementById('newRound').onclick=()=>{
+  const btn=document.getElementById('newRound');
   if(picked.size<2){toast('tap at least 2 chips');return}
-  (await vote({action:'new_round',source,pool:[...picked]}))?toast('new round sent — fresh blends in ~2 min'):toast('send failed');
+  btn.disabled=true;btn.textContent='🎲 SENDING…';
+  setTimeout(()=>{btn.disabled=false;btn.textContent='🎲 NEW RANDOM ROUND FROM THESE'},2500);
+  sendLater({action:'new_round',source,pool:[...picked]},'new round sent — fresh blends in ~2 min');
 };
 let restartArmed=false;
-document.getElementById('restartBtn').onclick=async()=>{
+document.getElementById('restartBtn').onclick=()=>{
   const btn=document.getElementById('restartBtn');
   if(picked.size<2){toast('tap at least 2 chips');return}
   if(!restartArmed){restartArmed=true;btn.textContent='⚠ TAP AGAIN TO WIPE + RESTART';btn.style.color='#f87171';
     setTimeout(()=>{restartArmed=false;btn.textContent='⟲ RESTART TOURNEY (round 1)';btn.style.color='var(--faint)'},4000);return}
-  restartArmed=false;btn.textContent='⟲ RESTART TOURNEY (round 1)';btn.style.color='var(--faint)';
-  if(await vote({action:'restart',source,pool:[...picked]})){toast('restart sent — fresh round 1 in ~2 min');lastSig='';winners.clear()}else toast('send failed — check connection');
+  restartArmed=false;btn.textContent='⟲ SENDING…';btn.style.color='var(--faint)';
+  lastSig='';winners.clear();
+  sendLater({action:'restart',source,pool:[...picked]},'restart sent — fresh round 1 in ~2 min');
+  setTimeout(()=>{btn.textContent='⟲ RESTART TOURNEY (round 1)'},2500);
 };
 document.getElementById('tAll').onclick=()=>{POOL.filter(p=>(p.cat||'style')===tab).forEach(p=>picked.add(p.file));renderTabs();renderChips()};
 document.getElementById('tNone').onclick=()=>{POOL.filter(p=>(p.cat||'style')===tab).forEach(p=>picked.delete(p.file));renderTabs();renderChips()};
