@@ -70,6 +70,8 @@ a{color:var(--faint)}
   <div class="label">FLAVOR — art direction injected into every candidate's prompt</div>
   <textarea id="flavor" placeholder="e.g. 32-bit SNES JRPG portrait, Final Fantasy VI hero, Metal Gear tactical aesthetic, moody cinematic lighting" style="width:100%;min-height:60px;background:#0d0d11;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px;font-family:inherit"></textarea>
   <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap"><button class="cy" id="newRound" style="min-height:46px">🎲 NEW RANDOM ROUND FROM THESE</button><button id="restartBtn" style="min-height:46px;color:var(--faint);border-color:var(--border);background:transparent">⟲ RESTART TOURNEY (round 1)</button></div>
+  <div style="margin-top:10px"><button id="bigBatch" style="min-height:48px;width:100%;color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.16)">🔢 START BIG BATCH — 120 blends of this source + pool</button>
+  <div style="font-size:10.5px;color:var(--faint);margin-top:5px">renders 120 distinct blends from the selected source & pool (~35 min); browse + mix them in the overview</div></div>
 </div></div>
 <div id="rounds">loading…</div>
 <div id="toast"></div>
@@ -218,6 +220,13 @@ document.getElementById('stopBatch').onclick=()=>{
   if(!stopArmed){stopArmed=true;b.textContent='■ TAP AGAIN TO STOP';setTimeout(()=>{stopArmed=false;b.textContent='■ STOP'},3000);return}
   stopArmed=false;b.textContent='■ STOPPING…';
   setTimeout(async()=>{try{await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'stop'})});toast('stop sent — batch halts after current blend')}catch(e){toast('failed')}setTimeout(()=>b.textContent='■ STOP',2500)},0);
+};
+document.getElementById('bigBatch').onclick=()=>{
+  const b=document.getElementById('bigBatch');
+  if(picked.size<2){toast('tap at least 2 chips in the pool');return}
+  b.disabled=true;b.textContent='🔢 STARTING 120…';
+  setTimeout(()=>{b.disabled=false;b.textContent='🔢 START BIG BATCH — 120 blends of this source + pool'},3000);
+  sendLater({action:'batch',source,pool:[...picked],flavor:flavorVal()},'big batch started — watch the tracker up top');
 };
 pollBatch();setInterval(pollBatch,5000);
 load();setInterval(load,20000);
