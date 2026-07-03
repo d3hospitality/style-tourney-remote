@@ -1,0 +1,70 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D3 STYLE TOURNEY</title><style>
+:root{--bg:#0a0a0c;--card:#16161c;--border:#2a2a35;--gold:#d4af37;--text:#e0ddd5;--faint:#7a7a88;--cyan:#00d9ff}
+*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:18px;max-width:1100px;margin:0 auto}
+h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:4px;font-size:17px}
+.sub{color:var(--faint);font-size:12px;margin:4px 0 16px}
+.round{margin-bottom:28px}
+.rhead{font-family:Consolas,monospace;font-size:12px;letter-spacing:2px;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.badge{font-size:10px;color:var(--cyan);border:1px solid var(--border);border-radius:99px;padding:3px 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.cand{background:var(--card);border:2px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer}
+.cand img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.cand .cap{padding:6px 8px 8px}
+.num{font-family:Consolas,monospace;font-size:10px;color:var(--faint)}
+.wrow{display:flex;align-items:center;gap:5px;margin-top:3px}
+.wname{font-family:Consolas,monospace;font-size:8.5px;color:var(--text);width:44%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.wtrack{flex:1;height:6px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden}
+.wfill{height:100%;background:linear-gradient(90deg,#8a6d1f,var(--gold))}
+.wpct{font-family:Consolas,monospace;font-size:8.5px;color:var(--gold);width:26px;text-align:right}
+.cand.win{border-color:var(--gold);box-shadow:0 0 12px rgba(212,175,55,.4)}
+.cand.dis{opacity:.55;cursor:default}
+button{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(212,175,55,.5);border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer}
+button:disabled{opacity:.35;cursor:default}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:9}
+</style></head><body>
+<h1>D3 STYLE TOURNEY</h1>
+<div class="sub">vote from anywhere — the 4080 sees your pick, breeds the next round, and uploads it here (~2 min later). tap winners on the LATEST round → SEND.</div>
+<div id="rounds">loading…</div>
+<div id="toast"></div>
+<script>
+const SB='https://hwqovzizjoelzfulhxem.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cW92eml6am9lbHpmdWxoeGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzU5MTQsImV4cCI6MjA5NDIxMTkxNH0.U-4EkTX5FuvRwncQnejAQUaPLCLRyE8yk1uCQfz8XdU';
+const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
+let winners=new Set(),latest=0,lastSig='';
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
+async function load(){
+  const rounds=await(await fetch(SB+'/rest/v1/st_rounds?select=*&order=round.desc&limit=6',{headers:H})).json();
+  const votes=await(await fetch(SB+'/rest/v1/st_votes?select=round,winners&order=id.desc&limit=20',{headers:H})).json();
+  if(!rounds.length){document.getElementById('rounds').innerHTML='<div class="sub">no rounds synced yet — run one in the Style Lab on the PC</div>';return}
+  const sig=JSON.stringify(rounds.map(r=>r.round));
+  latest=rounds[0].round;
+  const votedRounds=new Set(votes.map(v=>v.round));
+  if(sig===lastSig){renderVoteState(votedRounds);return}
+  lastSig=sig;winners.clear();
+  document.getElementById('rounds').innerHTML=rounds.map(r=>{
+    const isLatest=r.round===latest;
+    const cards=r.recipes.map((rec,i)=>{
+      const rows=rec.loras.map(l=>{const p=Math.round(l.w*100);
+        return `<div class="wrow"><span class="wname">${l.file.replace('.safetensors','')}</span><span class="wtrack"><span class="wfill" style="display:block;width:${Math.min(100,p)}%"></span></span><span class="wpct">${p}%</span></div>`}).join('');
+      return `<div class="cand ${isLatest?'':'dis'}" data-r="${r.round}" data-i="${i}"><img loading="lazy" src="${r.images[i]}"><div class="cap"><span class="num">#${i} · ${rec.loras.length}-way</span>${rows}</div></div>`}).join('');
+    return `<div class="round"><div class="rhead"><span>ROUND ${r.round}${isLatest?' — TAP YOUR WINNERS':''}</span>
+      ${isLatest?`<span><button id="send" disabled>SEND WINNERS → BREED NEXT</button></span>`:`<span class="badge" id="b${r.round}">closed</span>`}
+      </div><div class="grid">${cards}</div></div>`}).join('');
+  document.querySelectorAll('.cand:not(.dis)').forEach(c=>c.onclick=()=>{
+    const i=+c.dataset.i;winners.has(i)?winners.delete(i):winners.add(i);c.classList.toggle('win');
+    const b=document.getElementById('send');b.disabled=!winners.size;
+    b.textContent=winners.size?`SEND ${winners.size} WINNER${winners.size>1?'S':''} → BREED ROUND ${latest+1}`:'SEND WINNERS → BREED NEXT'});
+  const send=document.getElementById('send');
+  if(send)send.onclick=async()=>{
+    send.disabled=true;
+    const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({round:latest,winners:[...winners]})});
+    if(r.ok){toast('sent — the 4080 is breeding round '+(latest+1));}else{toast('failed: '+r.status);send.disabled=false}};
+  renderVoteState(votedRounds);
+}
+function renderVoteState(votedRounds){
+  const send=document.getElementById('send');
+  if(send&&votedRounds.has(latest)){send.textContent='VOTE RECEIVED — waiting for the 4080…';send.disabled=true}
+}
+load();setInterval(load,20000);
+</script></body></html>
