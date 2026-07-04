@@ -74,7 +74,7 @@ a{color:var(--gold)}
 <div class="card">
   <div class="lbl">CAST — <span id="entCount">0</span> entities · tap to select</div>
   <div id="delBar" style="display:none;gap:8px;align-items:center;margin-bottom:9px;flex-wrap:wrap">
-    <button id="delBtn" style="color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.12)">🗑 DELETE <span id="delN">0</span></button>
+    <button id="delBtn" style="color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.12)">🗑 DELETE 0</button>
     <button id="delClear" style="color:var(--faint);border-color:var(--border);background:transparent">clear</button>
     <span class="dim">buries their sprites so you can redo with a new reference</span>
   </div>
@@ -163,9 +163,9 @@ document.getElementById('factory').onclick=async()=>{
 // CAST multiselect + delete — bury entities whose reference you want to redo
 function updateDelBar(){
   const bar=document.getElementById('delBar');if(!bar)return;
-  document.getElementById('delN').textContent=selEnt.size;
   bar.style.display=selEnt.size?'flex':'none';
-  if(!selEnt.size){delArmed=false;document.getElementById('delBtn').textContent='🗑 DELETE 0';}
+  if(!selEnt.size)delArmed=false;
+  if(!delArmed)document.getElementById('delBtn').textContent='🗑 DELETE '+selEnt.size;
 }
 document.getElementById('delClear').onclick=()=>{
   selEnt.clear();document.querySelectorAll('#entities .ent.sel').forEach(c=>c.classList.remove('sel'));updateDelBar();
