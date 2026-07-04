@@ -22,9 +22,17 @@ button:disabled{opacity:.4}
 .dot.up{background:var(--green);box-shadow:0 0 6px var(--green)}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:9}
 a{color:var(--gold)}
+.nav{display:flex;gap:6px;margin:8px 0 10px;flex-wrap:wrap}
+.st{font-family:Consolas,monospace;font-size:10.5px;letter-spacing:1px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;color:var(--faint);text-decoration:none}
+.st.on{color:var(--green);border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.1)}
 </style></head><body>
 <h1>D3 SPRITE STUDIO — remote</h1>
-<div class="sub"><span class="dot" id="dot"></span> <span id="statusMsg">connecting…</span> · <a href="index.html">← style tourney</a></div>
+<div class="nav">
+  <a href="index.html" class="st">① TOURNEY</a>
+  <a href="batch.html" class="st">② BATCH + BUILD</a>
+  <span class="st on">③ TRAIN + ASSIGN</span>
+</div>
+<div class="sub"><span class="dot" id="dot"></span> <span id="statusMsg">connecting…</span></div>
 <div class="card" id="jobCard" style="display:none;border-color:var(--green)">
   <div class="lbl" style="color:var(--green)">⚙ RUNNING <span id="jobMode"></span></div>
   <div style="height:10px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden"><div id="jobFill" style="height:100%;background:linear-gradient(90deg,var(--green),#86efac);width:0%;transition:width .8s"></div></div>
@@ -44,6 +52,13 @@ a{color:var(--gold)}
   <div class="lbl">GENERATE</div>
   <button class="fac" id="factory">🏭 FACTORY — render all entities in the assigned blend</button>
   <div class="dim" style="margin-top:6px">Geometry-locked to dummy states · outputs archive into the blend's folder · runs on the 4080 (~hours for full cast)</div>
+</div>
+
+<div class="card">
+  <div class="lbl" style="color:#f0abfc">🔥 TRAIN A STYLE LoRA</div>
+  <div class="dim" style="margin-bottom:7px">Distill a style's built library (its cast folder) into ONE trained LoRA. Trains when ComfyUI is closed.</div>
+  <select id="trainBlend"><option value="">— pick a built style folder —</option></select>
+  <button id="trainBtn" disabled style="width:100%;margin-top:8px;color:#f0abfc;border-color:rgba(240,171,252,.5);background:rgba(240,171,252,.12)">🔥 TRAIN THIS STYLE → LoRA</button>
 </div>
 
 <div class="card">
@@ -95,7 +110,21 @@ function render(){
   document.getElementById('entCount').textContent=D.count;
   document.getElementById('entities').innerHTML=D.entities.map(e=>
     `<div class="ent"><img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div></div>`).join('');
+  const tb=document.getElementById('trainBlend');
+  const folders=D.out_folders||[];
+  tb.innerHTML='<option value="">— pick a built style folder —</option>'+folders.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  document.getElementById('trainBtn').disabled=!folders.length;
 }
+document.getElementById('trainBtn').onclick=()=>{
+  const bid=document.getElementById('trainBlend').value;
+  if(!bid){toast('pick a built style folder first');return}
+  const btn=document.getElementById('trainBtn');btn.disabled=true;btn.textContent='🔥 SENDING…';
+  (async()=>{
+    try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'train_style',payload:{blend:bid}})});
+      toast(r.ok?'train queued — starts when ComfyUI is closed on the PC':'failed')}catch(e){toast('offline?')}
+    setTimeout(()=>{btn.disabled=false;btn.textContent='🔥 TRAIN THIS STYLE → LoRA'},2500);
+  })();
+};
 document.getElementById('projBlend').onchange=async()=>{
   const v=document.getElementById('projBlend').value;
   toast('assigning…');(await cmd('set_style',{blend:v||null}))?toast('project blend set'):toast('failed');

@@ -45,8 +45,9 @@ button.cy{color:var(--cyan);border-color:rgba(0,217,255,.5);background:rgba(0,21
 button:disabled{opacity:.35;cursor:default}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:9}
 a{color:var(--faint)}
-</style></head><body>
+.nav{display:flex;gap:6px;margin:8px 0 12px;flex-wrap:wrap}.st{font-family:Consolas,monospace;font-size:10.5px;letter-spacing:1px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;color:var(--faint);text-decoration:none}.st.on{color:var(--gold);border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.1)}</style></head><body>
 <h1>D3 STYLE TOURNEY</h1>
+<div class="nav"><span class="st on">① TOURNEY</span><a href="batch.html" class="st">② BATCH + BUILD</a><a href="studio.html" class="st">③ TRAIN + ASSIGN</a></div>
 <div class="sub">remote control for the 4080's style lab — vote, start fresh rounds, change the source, bake. commands land within ~30s; new rounds appear here ~2 min later.</div>
 <div style="margin-bottom:10px"><a href="studio.html" style="text-decoration:none"><button style="width:100%;min-height:46px;color:#4ade80;border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.12)">🎮 SPRITE STUDIO — assign blends & run factory</button></a></div>
 <div style="margin-bottom:14px"><a href="batch.html" style="text-decoration:none"><button style="width:100%;min-height:48px;color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.14)">▦ OPEN BIG BATCH OVERVIEW <span id="batchCount" style="color:var(--faint);font-weight:400"></span></button></a></div>
