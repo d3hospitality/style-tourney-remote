@@ -44,7 +44,8 @@ a{color:var(--gold)}
     <button id="mixBtn" disabled style="flex:1;font-size:11px">🎨 preview merge (4 seeds)</button>
     <button id="shufBtn" disabled style="flex:1;font-size:11px">🔁 reshuffle favs' pool</button>
   </div>
-  <div style="font-size:10.5px;color:var(--faint);margin-top:7px;line-height:1.5"><b style="color:var(--cyan)">NARROW</b> = keep your favs + breed 24 new toward them (the tournament converging) · <b style="color:var(--gold)">FORGE MASTER</b> = merge favs into ONE named master style (saved to library, ready to assign + train in the Sprite Studio)</div>
+  <div style="margin-top:8px"><button id="buildBtn" disabled style="width:100%;color:#f0abfc;border-color:rgba(240,171,252,.5);background:rgba(240,171,252,.1)">🏗️ BUILD TRAINING LIBRARY — render the cast in each selected style</button></div>
+  <div style="font-size:10.5px;color:var(--faint);margin-top:7px;line-height:1.5"><b style="color:var(--cyan)">NARROW</b> = breed 24 toward favs · <b style="color:var(--gold)">FORGE MASTER</b> = merge favs into one trainable style · <b style="color:#f0abfc">BUILD LIBRARY</b> = for EACH selected style, render every philosopher (a big per-style training set on the 4080) — this is the corpus you train the final LoRA from</div>
   <div id="libView" style="margin-top:10px"></div>
 </div>
 <div id="toast"></div>
@@ -79,7 +80,7 @@ function renderGrid(){
 function renderTray(){
   document.getElementById('trayCount').textContent=picked.size;
   const rows=document.getElementById('trayRows');
-  const ids=['mixBtn','shufBtn','narrowBtn','forgeBtn'];
+  const ids=['mixBtn','shufBtn','narrowBtn','forgeBtn','buildBtn'];
   if(!picked.size){rows.innerHTML='<div class="empty">tap blends above to add them here</div>';ids.forEach(id=>document.getElementById(id).disabled=true);return}
   ids.forEach(id=>document.getElementById(id).disabled=false);
   rows.innerHTML=[...picked.entries()].map(([i,pct])=>{
@@ -125,6 +126,17 @@ document.getElementById('narrowBtn').onclick=()=>{
     try{const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'narrow',picks})});
       toast(r.ok?'narrowing — 24 new blends bred from your favs (~7 min)':'send failed')}catch(e){toast('offline?')}
     setTimeout(()=>{btn.disabled=false;btn.textContent='🔀 NARROW — breed round from favs'},2500);
+  },0);
+};
+document.getElementById('buildBtn').onclick=()=>{
+  const n=picked.size;
+  const emo=confirm('BUILD TRAINING LIBRARY from '+n+' selected styles.\n\nOK = ANCHOR ONLY (1 sprite × ~80 philosophers × '+n+' styles — faster, great for training a style)\nCancel = ALL EMOTIONS (23 × 80 × '+n+' — huge, many hours)')?'anchor':'all';
+  const btn=document.getElementById('buildBtn');btn.disabled=true;btn.textContent='🏗️ SENDING…';
+  const picks=[...picked.keys()].map(i=>({i}));
+  setTimeout(async()=>{
+    try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'build_library',payload:{picks,emotions:emo}})});
+      toast(r.ok?'building library — watch progress on the Studio page':'failed (is the Studio bridge up?)')}catch(e){toast('offline?')}
+    setTimeout(()=>{btn.disabled=false;btn.textContent='🏗️ BUILD TRAINING LIBRARY — render the cast in each selected style'},3000);
   },0);
 };
 document.getElementById('forgeBtn').onclick=()=>{
