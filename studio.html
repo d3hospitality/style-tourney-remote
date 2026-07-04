@@ -19,7 +19,10 @@ button:disabled{opacity:.4}
 .ent img{width:100%;aspect-ratio:1;object-fit:cover;background:#000}
 .ent div{font-size:8.5px;color:var(--faint);padding:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .ent.sel{border-color:#f87171;box-shadow:0 0 0 2px #f87171}
-.ent.sel::after{content:'✓';position:absolute;top:3px;right:4px;width:16px;height:16px;line-height:16px;font-size:11px;color:#fff;background:#f87171;border-radius:50%}
+.ent .pk{position:absolute;top:3px;right:3px;width:17px;height:17px;border:1px solid var(--faint);border-radius:4px;background:rgba(0,0,0,.45);z-index:2;cursor:pointer}
+.ent .pk.on{background:#f87171;border-color:#f87171}
+.ent .pk.on::after{content:'✓';color:#fff;font-size:11px;line-height:17px;text-align:center;display:block}
+#emoModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:50;padding:14px;overflow-y:auto}
 .ent .m{position:absolute;top:2px;left:3px;font-size:11px;z-index:1;text-shadow:0 0 3px #000}
 .ent .qc{display:block;font-size:7.5px;color:var(--faint);padding:0 2px 2px;font-family:Consolas,monospace}
 .ent.gold{border-color:rgba(212,175,55,.5)}.ent.strag{border-color:rgba(248,113,113,.4)}
@@ -84,13 +87,22 @@ a{color:var(--gold)}
 </div>
 
 <div class="card">
-  <div class="lbl">CAST — <span id="entCount">0</span> entities · tap to select</div>
+  <div class="lbl">CAST — <span id="entCount">0</span> entities · tap a face to see its emotions · ✓ to select</div>
   <div id="delBar" style="display:none;gap:8px;align-items:center;margin-bottom:9px;flex-wrap:wrap">
     <button id="delBtn" style="color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.12)">🗑 DELETE 0</button>
     <button id="delClear" style="color:var(--faint);border-color:var(--border);background:transparent">clear</button>
     <span class="dim">buries their sprites so you can redo with a new reference</span>
   </div>
   <div class="grid" id="entities"></div>
+</div>
+<div id="emoModal" onclick="if(event.target===this)closeEmotions()">
+  <div style="max-width:900px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span class="lbl" id="emoTitle" style="color:var(--gold)"></span>
+      <button onclick="closeEmotions()" style="min-height:0;padding:6px 12px">✕ close</button>
+    </div>
+    <div class="grid" id="emoGrid"></div>
+  </div>
 </div>
 <div id="toast"></div>
 <script>
@@ -100,7 +112,14 @@ const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json
 const STORE=SB+'/storage/v1/object/public/style-tourney/';
 let D=null,sig='';
 let selEnt=new Set(),delArmed=false;
-let QC={},QCC=null;
+let QC={},QCC=null,CE=null;
+function openEmotions(slug){
+  const em=(CE&&CE.entities&&CE.entities[slug])||[];
+  document.getElementById('emoTitle').textContent=slug.replace(/_/g,' ')+' · '+em.length+' emotions';
+  document.getElementById('emoGrid').innerHTML=em.length?em.map(x=>`<div class="ent"><img loading="lazy" src="${x.thumb}"><div>${x.emotion}</div></div>`).join(''):'<div class="dim" style="padding:22px">no emotions published yet — run FACTORY (they appear here as they render).</div>';
+  document.getElementById('emoModal').style.display='block';
+}
+function closeEmotions(){document.getElementById('emoModal').style.display='none';}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
 async function cmd(action,payload){
   try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload})});return r.ok}catch(e){return false}
@@ -124,6 +143,7 @@ async function load(){
     D=await(await fetch(STORE+'studio_data.json?'+Date.now())).json();
     try{const q=await(await fetch(STORE+'castqc.json?'+Date.now())).json();
       QC={};q.cast.forEach(r=>QC[r.slug]=r);QCC=q.counts;}catch(e){}
+    try{CE=await(await fetch(STORE+'castemotions.json?'+Date.now())).json();}catch(e){}
     const s=JSON.stringify([D.style_blend,D.emotion_styles,D.blends.map(b=>b.id),D.entities.map(e=>[e.slug,e.thumb]),Object.keys(QC).length]);
     if(s!==sig){sig=s;render()}
   }catch(e){}
@@ -146,9 +166,11 @@ function render(){
     const q=QC[e.slug]||{},m=q.method;
     const badge=m?`<span class="m">${BADGE[m]||''}</span>`:'';
     const chip=q.denoise!=null?`<span class="qc">d${q.denoise}${q.sat!=null?'·s'+q.sat:''}</span>`:'';
-    return `<div class="ent ${selEnt.has(e.slug)?'sel':''} ${CLS[m]||''}" data-slug="${e.slug}">${badge}<img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div>${chip}</div>`;}).join('');
-  document.querySelectorAll('#entities .ent').forEach(c=>c.onclick=()=>{
-    const s=c.dataset.slug;selEnt.has(s)?selEnt.delete(s):selEnt.add(s);c.classList.toggle('sel');updateDelBar();});
+    return `<div class="ent ${selEnt.has(e.slug)?'sel':''} ${CLS[m]||''}" data-slug="${e.slug}">${badge}<span class="pk ${selEnt.has(e.slug)?'on':''}" data-pk title="select for delete"></span><img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div>${chip}</div>`;}).join('');
+  document.querySelectorAll('#entities .ent').forEach(c=>{
+    const s=c.dataset.slug;
+    c.querySelector('[data-pk]').onclick=(ev)=>{ev.stopPropagation();selEnt.has(s)?selEnt.delete(s):selEnt.add(s);c.classList.toggle('sel');c.querySelector('.pk').classList.toggle('on');updateDelBar();};
+    c.onclick=()=>openEmotions(s);});
   updateDelBar();
   const tb=document.getElementById('trainBlend');
   const folders=D.out_folders||[];
