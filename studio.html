@@ -15,9 +15,11 @@ button:disabled{opacity:.4}
 .row{display:flex;gap:8px;margin-bottom:8px}
 .emoList{font-family:Consolas,monospace;font-size:10.5px;color:var(--cyan);line-height:1.7;margin-top:6px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
-.ent{background:#0d0d11;border:1px solid var(--border);border-radius:8px;overflow:hidden;text-align:center}
+.ent{background:#0d0d11;border:1px solid var(--border);border-radius:8px;overflow:hidden;text-align:center;position:relative;cursor:pointer}
 .ent img{width:100%;aspect-ratio:1;object-fit:cover;background:#000}
 .ent div{font-size:8.5px;color:var(--faint);padding:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ent.sel{border-color:#f87171;box-shadow:0 0 0 2px #f87171}
+.ent.sel::after{content:'✓';position:absolute;top:3px;right:4px;width:16px;height:16px;line-height:16px;font-size:11px;color:#fff;background:#f87171;border-radius:50%}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint)}
 .dot.up{background:var(--green);box-shadow:0 0 6px var(--green)}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:9}
@@ -70,7 +72,12 @@ a{color:var(--gold)}
 </div>
 
 <div class="card">
-  <div class="lbl">CAST — <span id="entCount">0</span> entities</div>
+  <div class="lbl">CAST — <span id="entCount">0</span> entities · tap to select</div>
+  <div id="delBar" style="display:none;gap:8px;align-items:center;margin-bottom:9px;flex-wrap:wrap">
+    <button id="delBtn" style="color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.12)">🗑 DELETE <span id="delN">0</span></button>
+    <button id="delClear" style="color:var(--faint);border-color:var(--border);background:transparent">clear</button>
+    <span class="dim">buries their sprites so you can redo with a new reference</span>
+  </div>
   <div class="grid" id="entities"></div>
 </div>
 <div id="toast"></div>
@@ -80,6 +87,7 @@ const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6
 const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
 const STORE=SB+'/storage/v1/object/public/style-tourney/';
 let D=null,sig='';
+let selEnt=new Set(),delArmed=false;
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
 async function cmd(action,payload){
   try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload})});return r.ok}catch(e){return false}
@@ -101,7 +109,7 @@ async function load(){
   }catch(e){document.getElementById('statusMsg').textContent='bridge offline'}
   try{
     D=await(await fetch(STORE+'studio_data.json?'+Date.now())).json();
-    const s=JSON.stringify([D.style_blend,D.emotion_styles,D.blends.map(b=>b.id),D.entities.length]);
+    const s=JSON.stringify([D.style_blend,D.emotion_styles,D.blends.map(b=>b.id),D.entities.map(e=>[e.slug,e.thumb])]);
     if(s!==sig){sig=s;render()}
   }catch(e){}
 }
@@ -117,7 +125,10 @@ function render(){
   document.getElementById('emoPick').onchange=sync;
   document.getElementById('entCount').textContent=D.count;
   document.getElementById('entities').innerHTML=D.entities.map(e=>
-    `<div class="ent"><img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div></div>`).join('');
+    `<div class="ent ${selEnt.has(e.slug)?'sel':''}" data-slug="${e.slug}"><img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div></div>`).join('');
+  document.querySelectorAll('#entities .ent').forEach(c=>c.onclick=()=>{
+    const s=c.dataset.slug;selEnt.has(s)?selEnt.delete(s):selEnt.add(s);c.classList.toggle('sel');updateDelBar();});
+  updateDelBar();
   const tb=document.getElementById('trainBlend');
   const folders=D.out_folders||[];
   tb.innerHTML='<option value="">— pick a built style folder —</option>'+folders.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
@@ -148,6 +159,26 @@ document.getElementById('factory').onclick=async()=>{
   facArmed=false;b.textContent='🏭 SENDING…';
   (await cmd('factory',{charts:'anchor'}))?toast('factory started on the 4080'):toast('failed');
   setTimeout(()=>b.textContent='🏭 FACTORY — render all entities in the assigned blend',2500);
+};
+// CAST multiselect + delete — bury entities whose reference you want to redo
+function updateDelBar(){
+  const bar=document.getElementById('delBar');if(!bar)return;
+  document.getElementById('delN').textContent=selEnt.size;
+  bar.style.display=selEnt.size?'flex':'none';
+  if(!selEnt.size){delArmed=false;document.getElementById('delBtn').textContent='🗑 DELETE 0';}
+}
+document.getElementById('delClear').onclick=()=>{
+  selEnt.clear();document.querySelectorAll('#entities .ent.sel').forEach(c=>c.classList.remove('sel'));updateDelBar();
+};
+document.getElementById('delBtn').onclick=async()=>{
+  if(!selEnt.size)return;
+  const b=document.getElementById('delBtn');
+  if(!delArmed){delArmed=true;b.textContent='⚠ TAP AGAIN TO DELETE '+selEnt.size;
+    setTimeout(()=>{delArmed=false;if(selEnt.size)b.textContent='🗑 DELETE '+selEnt.size;},3500);return;}
+  delArmed=false;const slugs=[...selEnt];b.textContent='🗑 DELETING…';
+  const ok=await cmd('delete_entity',{slugs});
+  toast(ok?('delete queued — '+slugs.length+' buried · redo with a new reference'):'failed — is the bridge up?');
+  selEnt.clear();updateDelBar();
 };
 // PREVIEW A STYLE — reads blendview.json (published by blendview_publish.py on
 // the PC, straight off disk) so you can eyeball a style's rendered cast here.
