@@ -173,13 +173,38 @@ document.getElementById('forgeBtn').onclick=()=>{
     setTimeout(()=>{btn.disabled=false;btn.textContent='⭐ FORGE MASTER';loadLib()},3000);
   },0);
 };
+let LIB=[];
 async function loadLib(){
   try{
     const d=await(await fetch(STORE+'library.json?'+Date.now())).json();
-    const bl=d.blends||[];
-    document.getElementById('libView').innerHTML='<div style="font-family:Consolas,monospace;font-size:10px;letter-spacing:2px;color:#4ade80;margin-bottom:5px">📚 SAVED BLENDS ('+bl.length+')</div>'+
-      (bl.length?bl.map(b=>`<div style="font-family:Consolas,monospace;font-size:10.5px;color:var(--text);padding:2px 0">${b.name} <span style="color:var(--faint)">· ${b.loras.length} LoRAs${b.emotion?' · '+b.emotion:''}</span></div>`).join(''):'<div style="color:var(--faint);font-size:11px">none yet — pick favs and SAVE</div>');
+    LIB=d.blends||[];
+    const v=document.getElementById('libView');
+    v.innerHTML='<div style="font-family:Consolas,monospace;font-size:10px;letter-spacing:2px;color:#4ade80;margin:8px 0 6px">📚 SAVED BLENDS ('+LIB.length+') — build the emotional cast → train</div>'+
+      (LIB.length?LIB.map((b,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--border)">
+        <div style="flex:1;font-family:Consolas,monospace;font-size:10.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name} <span style="color:var(--faint)">· ${b.loras.length} LoRAs${b.emotion?' · '+b.emotion:''}</span></div>
+        <button class="lb-b" data-i="${i}" style="min-height:0;padding:6px 9px;font-size:11px;color:#f0abfc;border-color:rgba(240,171,252,.5);background:rgba(240,171,252,.1)">🏗️ EMOTIONS</button>
+        <button class="lb-t" data-i="${i}" style="min-height:0;padding:6px 9px;font-size:11px;color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.14)">🔥 TRAIN</button>
+      </div>`).join(''):'<div style="color:var(--faint);font-size:11px">none yet — pick favs and FORGE MASTER</div>');
+    v.querySelectorAll('.lb-b').forEach(btn=>btn.onclick=()=>buildBlend(LIB[+btn.dataset.i],btn));
+    v.querySelectorAll('.lb-t').forEach(btn=>btn.onclick=()=>trainBlend(LIB[+btn.dataset.i],btn));
   }catch(e){}
+}
+function buildBlend(b,btn){
+  const emo=confirm('BUILD EMOTIONAL LIBRARY for "'+b.name+'".\n\nOK = ALL EMOTIONS (23 × the whole cast — the training corpus, hours on the 4080)\nCancel = anchor only (1 each, faster)')?'all':'anchor';
+  btn.disabled=true;btn.textContent='🏗️ SENDING…';
+  setTimeout(async()=>{
+    try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'build_library',payload:{styles:[{id:b.id,name:b.name,loras:b.loras}],emotions:emo}})});
+      toast(r.ok?'building '+emo+' library for "'+b.name+'" — watch the ③ STUDIO page':'failed — is the Studio bridge up?')}catch(e){toast('offline?')}
+    setTimeout(()=>{btn.disabled=false;btn.textContent='🏗️ EMOTIONS'},3000);
+  },0);
+}
+function trainBlend(b,btn){
+  btn.disabled=true;btn.textContent='🔥 SENDING…';
+  setTimeout(async()=>{
+    try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'train_style',payload:{blend:b.id}})});
+      toast(r.ok?'train queued for "'+b.name+'" — build its emotions first if empty; starts when ComfyUI is closed':'failed')}catch(e){toast('offline?')}
+    setTimeout(()=>{btn.disabled=false;btn.textContent='🔥 TRAIN'},2500);
+  },0);
 }
 // FORGE / BREED preview — the st_rounds grid, relocated here from the launcher.
 // mix & forge_master previews land here; tap winners → SEND → BREED, or 🔥 BAKE.
