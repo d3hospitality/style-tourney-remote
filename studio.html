@@ -55,6 +55,14 @@ a{color:var(--gold)}
 </div>
 
 <div class="card">
+  <div class="lbl">👁 PREVIEW A STYLE — eyeball the rendered cast before you train</div>
+  <div class="dim" style="margin-bottom:7px">Every philosopher rendered in the picked style (identity from their saved sprite · pose from the dummy · look from the blend). Updates live as the build runs.</div>
+  <select id="viewStyle"><option value="">— pick a built style —</option></select>
+  <div id="viewMeta" class="dim" style="margin-top:6px"></div>
+  <div class="grid" id="viewGrid" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
   <div class="lbl" style="color:#f0abfc">🔥 TRAIN A STYLE LoRA</div>
   <div class="dim" style="margin-bottom:7px">Distill a style's built library (its cast folder) into ONE trained LoRA. Trains when ComfyUI is closed.</div>
   <select id="trainBlend"><option value="">— pick a built style folder —</option></select>
@@ -141,5 +149,30 @@ document.getElementById('factory').onclick=async()=>{
   (await cmd('factory',{charts:'anchor'}))?toast('factory started on the 4080'):toast('failed');
   setTimeout(()=>b.textContent='🏭 FACTORY — render all entities in the assigned blend',2500);
 };
+// PREVIEW A STYLE — reads blendview.json (published by blendview_publish.py on
+// the PC, straight off disk) so you can eyeball a style's rendered cast here.
+let BV=null,bvSig='';
+async function loadBlendView(){
+  try{BV=await(await fetch(STORE+'blendview.json?'+Date.now())).json();}catch(e){return}
+  const sel=document.getElementById('viewStyle');
+  const sig=JSON.stringify((BV.styles||[]).map(s=>[s.id,s.count]));
+  if(sig!==bvSig){
+    bvSig=sig;const cur=sel.value;
+    sel.innerHTML='<option value="">— pick a built style ('+(BV.styles||[]).length+') —</option>'+
+      (BV.styles||[]).map(s=>`<option value="${s.id}" ${s.id===cur?'selected':''}>${s.name} (${s.count})</option>`).join('');
+  }
+  renderView();
+}
+function renderView(){
+  const id=document.getElementById('viewStyle').value;
+  const st=(BV&&BV.styles||[]).find(s=>s.id===id);
+  const grid=document.getElementById('viewGrid'),meta=document.getElementById('viewMeta');
+  const has=BV&&BV.styles&&BV.styles.length;
+  if(!st){grid.innerHTML='';meta.textContent=has?('updated '+BV.updated+' · '+(BV.total||0)+' sprites in '+BV.styles.length+' styles — pick one above'):'no preview yet — start a BUILD LIBRARY on the ② TOURNEY page';return}
+  meta.textContent=st.count+' philosophers · updated '+BV.updated;
+  grid.innerHTML=st.sprites.map(s=>`<div class="ent"><img loading="lazy" src="${s.thumb}"><div>${s.slug.replace(/_/g,' ')}</div></div>`).join('');
+}
+document.getElementById('viewStyle').onchange=renderView;
+loadBlendView();setInterval(loadBlendView,20000);
 load();setInterval(load,8000);
 </script></body></html>
