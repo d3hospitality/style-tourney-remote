@@ -28,7 +28,7 @@ button:disabled{opacity:.35}
 a{color:var(--gold)}
 </style></head><body>
 <h1>D3 BLEND BATCH</h1>
-<div class="sub">120 distinct blends of your LoRA pool · tap favorites → set % of each → MIX. <a href="index.html">← tournament</a></div>
+<div class="sub">ROUND 1 of the tournament: 120 wide blends. Tap favorites → NARROW to breed toward them (converge) → FORGE MASTER when it is THE look. <a href="index.html">← tournament</a></div>
 <div class="pbar"><div class="pfill" id="pfill"></div></div>
 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="pmsg" id="pmsg" style="margin-bottom:0">loading…</div>
 <button id="stopBatch" style="padding:7px 14px;min-height:0;color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1);display:none">■ STOP</button></div>
@@ -37,11 +37,14 @@ a{color:var(--gold)}
 <div class="tray"><h3>MIX TRAY — <span id="trayCount">0</span> selected</h3>
   <div id="trayRows"><div class="empty">tap blends above to add them here</div></div>
   <div style="display:flex;gap:8px;margin-top:6px">
-    <button id="mixBtn" disabled style="flex:1">🎨 MIX (use % sliders)</button>
-    <button id="shufBtn" disabled style="flex:1;color:var(--cyan);border-color:rgba(0,217,255,.5);background:rgba(0,217,255,.1)">🔀 SHUFFLE 20</button>
-    <button id="saveBtn" disabled style="flex:1;color:#4ade80;border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.1)">💾 SAVE TO LIBRARY</button>
+    <button id="narrowBtn" disabled style="flex:1;color:var(--cyan);border-color:rgba(0,217,255,.5);background:rgba(0,217,255,.12)">🔀 NARROW — breed round from favs</button>
+    <button id="forgeBtn" disabled style="flex:1;color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.16)">⭐ FORGE MASTER</button>
   </div>
-  <div style="font-size:10px;color:var(--faint);margin-top:5px">MIX = render your weighted blend · SHUFFLE = 20 new from these favs · SAVE = store this weighted blend as a named style for the Sprite Studio</div>
+  <div style="display:flex;gap:8px;margin-top:6px">
+    <button id="mixBtn" disabled style="flex:1;font-size:11px">🎨 preview merge (4 seeds)</button>
+    <button id="shufBtn" disabled style="flex:1;font-size:11px">🔁 reshuffle favs' pool</button>
+  </div>
+  <div style="font-size:10.5px;color:var(--faint);margin-top:7px;line-height:1.5"><b style="color:var(--cyan)">NARROW</b> = keep your favs + breed 24 new toward them (the tournament converging) · <b style="color:var(--gold)">FORGE MASTER</b> = merge favs into ONE named master style (saved to library, ready to assign + train in the Sprite Studio)</div>
   <div id="libView" style="margin-top:10px"></div>
 </div>
 <div id="toast"></div>
@@ -76,10 +79,9 @@ function renderGrid(){
 function renderTray(){
   document.getElementById('trayCount').textContent=picked.size;
   const rows=document.getElementById('trayRows');
-  if(!picked.size){rows.innerHTML='<div class="empty">tap blends above to add them here</div>';document.getElementById('mixBtn').disabled=true;document.getElementById('shufBtn').disabled=true;document.getElementById('saveBtn').disabled=true;return}
-  document.getElementById('mixBtn').disabled=false;
-  document.getElementById('shufBtn').disabled=false;
-  document.getElementById('saveBtn').disabled=false;
+  const ids=['mixBtn','shufBtn','narrowBtn','forgeBtn'];
+  if(!picked.size){rows.innerHTML='<div class="empty">tap blends above to add them here</div>';ids.forEach(id=>document.getElementById(id).disabled=true);return}
+  ids.forEach(id=>document.getElementById(id).disabled=false);
   rows.innerHTML=[...picked.entries()].map(([i,pct])=>{
     const it=items.find(x=>x.i===i);
     return `<div class="trow"><img src="${it?it.url:''}"><span class="lbl">#${i}</span>
@@ -97,7 +99,7 @@ document.getElementById('mixBtn').onclick=()=>{
     try{const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'mix',picks})});
       toast(r.ok?'mix sent — 4 renders in ~1 min (see tournament page)':'send failed')}
     catch(e){toast('offline?')}
-    setTimeout(()=>{btn.disabled=false;btn.textContent='🎨 MIX SELECTED → 4 RENDERS'},2000);
+    setTimeout(()=>{btn.disabled=false;btn.textContent='🎨 preview merge (4 seeds)'},2000);
   },0);
 };
 let stopArmed=false;
@@ -113,18 +115,27 @@ document.getElementById('shufBtn').onclick=()=>{
   setTimeout(async()=>{
     try{const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'shuffle',picks:favs})});
       toast(r.ok?'shuffle sent — 20 new blends from your favs (~6 min)':'send failed')}catch(e){toast('offline?')}
-    setTimeout(()=>{btn.disabled=false;btn.textContent='🔀 SHUFFLE 20'},2500);
+    setTimeout(()=>{btn.disabled=false;btn.textContent='🔁 reshuffle favs\' pool'},2500);
   },0);
 };
-document.getElementById('saveBtn').onclick=()=>{
-  const name=prompt('Name this style blend (it becomes a reusable reference in the Sprite Studio):','');
+document.getElementById('narrowBtn').onclick=()=>{
+  const btn=document.getElementById('narrowBtn');btn.disabled=true;btn.textContent='🔀 BREEDING…';
+  const picks=[...picked.keys()].map(i=>({i}));
+  setTimeout(async()=>{
+    try{const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'narrow',picks})});
+      toast(r.ok?'narrowing — 24 new blends bred from your favs (~7 min)':'send failed')}catch(e){toast('offline?')}
+    setTimeout(()=>{btn.disabled=false;btn.textContent='🔀 NARROW — breed round from favs'},2500);
+  },0);
+};
+document.getElementById('forgeBtn').onclick=()=>{
+  const name=prompt('Name your MASTER style (merges your favorites into one reusable, trainable blend for the Sprite Studio):','Master Style');
   if(!name||!name.trim())return;
-  const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='💾 SAVING…';
+  const btn=document.getElementById('forgeBtn');btn.disabled=true;btn.textContent='⭐ FORGING…';
   const picks=[...picked.entries()].map(([i,pct])=>({i,pct:pct/100}));
   setTimeout(async()=>{
-    try{const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'save',name:name.trim(),picks})});
-      toast(r.ok?'saved "'+name.trim()+'" to the library':'save failed')}catch(e){toast('offline?')}
-    setTimeout(()=>{btn.disabled=false;btn.textContent='💾 SAVE TO LIBRARY';loadLib()},3000);
+    try{const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'forge_master',name:name.trim(),picks})});
+      toast(r.ok?'forged "'+name.trim()+'" — saved + rendering preview':'send failed')}catch(e){toast('offline?')}
+    setTimeout(()=>{btn.disabled=false;btn.textContent='⭐ FORGE MASTER';loadLib()},3000);
   },0);
 };
 async function loadLib(){
