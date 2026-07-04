@@ -26,8 +26,14 @@ button{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(2
 <div class="sub">the self-tightening cast QC — free heuristics + gpt-4o vision score every neutral good / bad / review; the loop culls the bad, re-runs them, trains, and repeats. This is the watch-and-steer dashboard.</div>
 <div class="card" id="statusCard">
   <div class="lbl">STATUS <span class="dim" id="updated"></span></div>
+  <div class="dim" id="phaseline" style="margin:2px 0 8px;color:var(--cyan)"></div>
   <div class="tally" id="tally">loading…</div>
   <div class="dim" id="visionNote" style="margin-top:7px"></div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:11px">
+    <button onclick="ctl('permaloop_pause','⏸ paused — loop finishes the current sprite then holds')" style="color:var(--amber);border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.1)">⏸ PAUSE</button>
+    <button onclick="ctl('permaloop_resume','▶ resumed')" style="color:var(--green);border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.12)">▶ RESUME</button>
+    <button onclick="if(confirm('Stop the permaloop after the current sprite?'))ctl('permaloop_stop','■ stopping after this sprite')" style="color:var(--red);border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1)">■ STOP</button>
+  </div>
 </div>
 <div class="tally" id="filters" style="margin-bottom:10px">
   <span class="chip on" data-f="bad-review">⚠ needs work</span>
@@ -40,14 +46,27 @@ button{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(2
 <div id="toast"></div>
 <script>
 const SB='https://hwqovzizjoelzfulhxem.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cW92eml6am9lbHpmdWxoeGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzU5MTQsImV4cCI6MjA5NDIxMTkxNH0.U-4EkTX5FuvRwncQnejAQUaPLCLRyE8yk1uCQfz8XdU';
+const H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
 const STORE=SB+'/storage/v1/object/public/style-tourney/';
 const BADGE={good:'✅',bad:'❌',review:'⚠'};
+const PHASE={cull:'🔧 culling & regenerating',wait:'💤 waiting between cycles',idle:'✓ idle'};
 let D=null,filter='bad-review';
-function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
+async function ctl(action,msg){
+  try{await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload:{}})});toast(msg);}
+  catch(e){toast('⚠ could not reach the loop')}
+}
 function show(){
   if(!D)return;
   const c=D.counts||{};
   document.getElementById('updated').textContent='· '+(D.updated||'')+' · '+(D.total||0)+' judged';
+  const bits=[];
+  if(D.phase)bits.push(PHASE[D.phase]||D.phase);
+  if(D.cycle)bits.push('cycle '+D.cycle);
+  if(D.action)bits.push(D.action);
+  if(D.champion!=null)bits.push('champion v'+D.champion+(D.promoted?(' · promoted v'+D.promoted):' · not yet promoted'));
+  document.getElementById('phaseline').textContent=bits.join(' · ');
   document.getElementById('tally').innerHTML=
     `<span class="chip" style="color:var(--green)">✅ ${c.good||0} good</span>`+
     `<span class="chip" style="color:var(--amber)">⚠ ${c.review||0} review</span>`+
@@ -65,7 +84,7 @@ document.querySelectorAll('#filters .chip').forEach(c=>c.onclick=()=>{
   filter=c.dataset.f;document.querySelectorAll('#filters .chip').forEach(x=>x.classList.toggle('on',x===c));show();});
 async function load(){
   try{const d=await(await fetch(STORE+'permaloop.json?'+Date.now())).json();
-    const sig=JSON.stringify([d.updated,d.counts]);if(sig!==(D&&JSON.stringify([D.updated,D.counts]))){D=d;show();}}
+    const sig=JSON.stringify([d.updated,d.counts,d.phase,d.action,d.cycle,d.champion]);if(sig!==(D&&JSON.stringify([D.updated,D.counts,D.phase,D.action,D.cycle,D.champion]))){D=d;show();}}
   catch(e){document.getElementById('tally').textContent='no judge run yet — run cast_judge.py on the PC'}
 }
 load();setInterval(load,15000);
