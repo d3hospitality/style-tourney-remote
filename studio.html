@@ -25,6 +25,11 @@ a{color:var(--gold)}
 </style></head><body>
 <h1>D3 SPRITE STUDIO — remote</h1>
 <div class="sub"><span class="dot" id="dot"></span> <span id="statusMsg">connecting…</span> · <a href="index.html">← style tourney</a></div>
+<div class="card" id="jobCard" style="display:none;border-color:var(--green)">
+  <div class="lbl" style="color:var(--green)">⚙ RUNNING <span id="jobMode"></span></div>
+  <div style="height:10px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden"><div id="jobFill" style="height:100%;background:linear-gradient(90deg,var(--green),#86efac);width:0%;transition:width .8s"></div></div>
+  <div id="jobMsg" style="font-family:Consolas,monospace;font-size:10.5px;color:var(--cyan);margin-top:6px"></div>
+</div>
 
 <div class="card">
   <div class="lbl">STYLE BLEND — project-wide</div>
@@ -61,6 +66,15 @@ async function load(){
     const st=await(await fetch(STORE+'studio_status.json?'+Date.now())).json();
     document.getElementById('dot').className='dot'+(st.up?' up':'');
     document.getElementById('statusMsg').textContent=st.up?('studio online · '+st.at):'studio offline — start the D3 stack';
+    const job=st.job||{};const jc=document.getElementById('jobCard');
+    if(job.active){
+      jc.style.display='';
+      const pct=(job.pct!=null)?job.pct:(job.total_units?Math.round(100*(job.done_units||0)/job.total_units):0);
+      document.getElementById('jobFill').style.width=pct+'%';
+      document.getElementById('jobMode').textContent=job.mode?('· '+job.mode):'';
+      const unit=job.total_units?(' ('+(job.done_units||0)+'/'+job.total_units+')'):'';
+      document.getElementById('jobMsg').textContent=(job.slug||'')+' · '+(job.stage||'working')+unit+' · '+pct+'%';
+    }else{jc.style.display='none';}
   }catch(e){document.getElementById('statusMsg').textContent='bridge offline'}
   try{
     D=await(await fetch(STORE+'studio_data.json?'+Date.now())).json();
