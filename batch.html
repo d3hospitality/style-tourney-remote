@@ -26,15 +26,33 @@ button:disabled{opacity:.35}
 .empty{color:var(--faint);font-size:12px;padding:20px 0;text-align:center}
 #toast{position:fixed;bottom:50vh;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:99}
 a{color:var(--gold)}
-.nav{display:flex;gap:6px;margin:8px 0 12px;flex-wrap:wrap}.st{font-family:Consolas,monospace;font-size:10.5px;letter-spacing:1px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;color:var(--faint);text-decoration:none}.st.on{color:var(--gold);border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.1)}</style></head><body>
-<h1>D3 BLEND BATCH</h1>
-<div class="nav"><a href="index.html" class="st">① TOURNEY</a><span class="st on">② BATCH + BUILD</span><a href="studio.html" class="st">③ TRAIN + ASSIGN</a></div>
-<div class="sub">ROUND 1 of the tournament: 120 wide blends. Tap favorites → NARROW to breed toward them (converge) → FORGE MASTER when it is THE look. <a href="index.html">← tournament</a></div>
+.nav{display:flex;gap:6px;margin:8px 0 12px;flex-wrap:wrap}.st{font-family:Consolas,monospace;font-size:10.5px;letter-spacing:1px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;color:var(--faint);text-decoration:none}.st.on{color:var(--gold);border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.1)}
+.rsec{font-family:Consolas,monospace;font-size:11px;letter-spacing:2px;color:var(--gold);margin:22px 0 8px;border-top:1px solid var(--border);padding-top:16px}
+.round{margin-bottom:18px}
+.rhead{font-family:Consolas,monospace;font-size:12px;letter-spacing:2px;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.badge{font-size:10px;color:var(--cyan);border:1px solid var(--border);border-radius:99px;padding:3px 10px}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.cand{background:var(--card);border:2px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer}
+.cand img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.cand .cap{padding:6px 8px 8px}
+.num{font-family:Consolas,monospace;font-size:10px;color:var(--faint)}
+.wrow{display:flex;align-items:center;gap:5px;margin-top:3px}
+.wname{font-family:Consolas,monospace;font-size:8.5px;color:var(--text);width:44%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.wtrack{flex:1;height:6px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden}
+.wfill{height:100%;background:linear-gradient(90deg,#8a6d1f,var(--gold))}
+.wpct{font-family:Consolas,monospace;font-size:8.5px;color:var(--gold);width:26px;text-align:right}
+.cand.win{border-color:var(--gold);box-shadow:0 0 12px rgba(212,175,55,.4)}
+.cand.dis{opacity:.55;cursor:default}
+.rhead button{padding:8px 13px;min-height:0;font-size:12px}</style></head><body>
+<h1>D3 · ② TOURNEY</h1>
+<div class="nav"><a href="index.html" class="st">① BATCH</a><span class="st on">② TOURNEY</span><a href="studio.html" class="st">③ TRAIN + ASSIGN</a></div>
+<div class="sub">step 2 — narrow your 120. Tap favorites → NARROW to breed toward them (converge) → FORGE MASTER when it is THE look. mix &amp; forge previews land in the FORGE / BREED strip below. <a href="index.html">← back to ① batch</a></div>
 <div class="pbar"><div class="pfill" id="pfill"></div></div>
 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="pmsg" id="pmsg" style="margin-bottom:0">loading…</div>
 <button id="stopBatch" style="padding:7px 14px;min-height:0;color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1);display:none">■ STOP</button></div>
 <div style="height:6px"></div>
 <div class="grid" id="grid"></div>
+<div id="rounds"></div>
 <div class="tray"><h3>MIX TRAY — <span id="trayCount">0</span> selected</h3>
   <div id="trayRows"><div class="empty">tap blends above to add them here</div></div>
   <div style="display:flex;gap:8px;margin-top:6px">
@@ -56,7 +74,11 @@ const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6
 const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
 const STORE=SB+'/storage/v1/object/public/style-tourney/';
 let items=[],picked=new Map(),sig='';
+let winners=new Set(),latest=0,lastSig='';
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
+async function vote(body){const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify(body)});return r.ok}
+// fire the network AFTER the current paint so tapping feels instant (no INP lag)
+function sendLater(body,okMsg){setTimeout(async()=>{try{(await vote(body))?toast(okMsg):toast('send failed — check connection')}catch(e){toast('send failed — offline?')}},0)}
 async function poll(){
   try{
     const st=await(await fetch(STORE+'status.json?'+Date.now())).json();
@@ -99,7 +121,7 @@ document.getElementById('mixBtn').onclick=()=>{
   const picks=[...picked.entries()].map(([i,pct])=>({i,pct:pct/100}));
   setTimeout(async()=>{
     try{const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'mix',picks})});
-      toast(r.ok?'mix sent — 4 renders in ~1 min (see tournament page)':'send failed')}
+      toast(r.ok?'mix sent — 4 renders in ~1 min (appear in the FORGE / BREED strip below)':'send failed')}
     catch(e){toast('offline?')}
     setTimeout(()=>{btn.disabled=false;btn.textContent='🎨 preview merge (4 seeds)'},2000);
   },0);
@@ -159,6 +181,49 @@ async function loadLib(){
       (bl.length?bl.map(b=>`<div style="font-family:Consolas,monospace;font-size:10.5px;color:var(--text);padding:2px 0">${b.name} <span style="color:var(--faint)">· ${b.loras.length} LoRAs${b.emotion?' · '+b.emotion:''}</span></div>`).join(''):'<div style="color:var(--faint);font-size:11px">none yet — pick favs and SAVE</div>');
   }catch(e){}
 }
+// FORGE / BREED preview — the st_rounds grid, relocated here from the launcher.
+// mix & forge_master previews land here; tap winners → SEND → BREED, or 🔥 BAKE.
+async function loadRounds(){
+  let rounds,votes;
+  try{
+    rounds=await(await fetch(SB+'/rest/v1/st_rounds?select=*&order=round.desc&limit=6',{headers:H})).json();
+    votes=await(await fetch(SB+'/rest/v1/st_votes?select=round,action&order=id.desc&limit=10',{headers:H})).json();
+  }catch(e){return}
+  const box=document.getElementById('rounds');
+  if(!rounds||!rounds.length){box.innerHTML='';lastSig='';return}
+  const s=JSON.stringify(rounds.map(r=>r.round));
+  latest=rounds[0].round;
+  const voted=votes.some(v=>v.round===latest&&v.action!=='new_round');
+  if(s===lastSig){refreshButtons(voted);return}
+  lastSig=s;winners.clear();
+  box.innerHTML='<div class="rsec">⭐ FORGE / BREED PREVIEW — mix &amp; forge renders land here · tap winners to breed or bake</div>'+rounds.map(r=>{
+    const isLatest=r.round===latest;
+    const cards=r.recipes.map((rec,i)=>{
+      const rows=rec.loras.map(l=>{const p=Math.round(l.w*100);
+        return `<div class="wrow"><span class="wname">${l.file.replace('.safetensors','')}</span><span class="wtrack"><span class="wfill" style="display:block;width:${Math.min(100,p)}%"></span></span><span class="wpct">${p}%</span></div>`}).join('');
+      return `<div class="cand ${isLatest?'':'dis'}" data-i="${i}"><img loading="lazy" src="${r.images[i]}"><div class="cap"><span class="num">#${i} · ${rec.loras.length}-way · ${(r.source||'').replace('_dummy-','').replace('.png','')}</span>${rows}</div></div>`}).join('');
+    return `<div class="round"><div class="rhead"><span>ROUND ${r.round}${isLatest?' — TAP WINNERS':''}</span>
+      ${isLatest?`<span style="display:flex;gap:8px"><button id="send" disabled>SEND → BREED</button><button id="bakeBtn" disabled>🔥 BAKE</button></span>`:`<span class="badge">closed</span>`}
+      </div><div class="rgrid">${cards}</div></div>`}).join('');
+  box.querySelectorAll('.cand:not(.dis)').forEach(c=>c.onclick=()=>{
+    const i=+c.dataset.i;winners.has(i)?winners.delete(i):winners.add(i);c.classList.toggle('win');refreshButtons(false)});
+  const send=document.getElementById('send');
+  if(send)send.onclick=()=>{send.disabled=true;send.textContent='SENDING…';
+    sendLater({round:latest,winners:[...winners],action:'breed'},'sent — breeding round '+(latest+1))};
+  const bake=document.getElementById('bakeBtn');
+  if(bake)bake.onclick=()=>{if(winners.size!==1)return;bake.disabled=true;bake.textContent='🔥 SENDING…';
+    sendLater({round:latest,winners:[],action:'bake',bake:[...winners][0]},'bake sent — 60 images rendering on the 4080')};
+  refreshButtons(voted);
+}
+function refreshButtons(voted){
+  const send=document.getElementById('send'),bake=document.getElementById('bakeBtn');
+  if(!send)return;
+  if(voted){send.textContent='VOTE RECEIVED — 4080 working…';send.disabled=true;if(bake)bake.disabled=true;return}
+  send.disabled=!winners.size;
+  send.textContent=winners.size?`SEND ${winners.size} → BREED R${latest+1}`:'SEND → BREED';
+  if(bake)bake.disabled=winners.size!==1;
+}
 loadLib();
 poll();setInterval(poll,6000);
+loadRounds();setInterval(loadRounds,15000);
 </script></body></html>

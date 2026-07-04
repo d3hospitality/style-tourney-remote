@@ -46,21 +46,21 @@ button:disabled{opacity:.35;cursor:default}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:9}
 a{color:var(--faint)}
 .nav{display:flex;gap:6px;margin:8px 0 12px;flex-wrap:wrap}.st{font-family:Consolas,monospace;font-size:10.5px;letter-spacing:1px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;color:var(--faint);text-decoration:none}.st.on{color:var(--gold);border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.1)}</style></head><body>
-<h1>D3 STYLE TOURNEY</h1>
-<div class="nav"><span class="st on">① TOURNEY</span><a href="batch.html" class="st">② BATCH + BUILD</a><a href="studio.html" class="st">③ TRAIN + ASSIGN</a></div>
-<div class="sub">remote control for the 4080's style lab — vote, start fresh rounds, change the source, bake. commands land within ~30s; new rounds appear here ~2 min later.</div>
+<h1>D3 · ① BATCH</h1>
+<div class="nav"><span class="st on">① BATCH</span><a href="batch.html" class="st">② TOURNEY</a><a href="studio.html" class="st">③ TRAIN + ASSIGN</a></div>
+<div class="sub">step 1 — cast the wide net. pick a source, a LoRA pool & a flavor, then START BIG BATCH to render 120 blends. narrow & forge them on the ② TOURNEY page. commands land on the 4080 within ~30s.</div>
 <div style="margin-bottom:10px"><a href="studio.html" style="text-decoration:none"><button style="width:100%;min-height:46px;color:#4ade80;border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.12)">🎮 SPRITE STUDIO — assign blends & run factory</button></a></div>
-<div style="margin-bottom:14px"><a href="batch.html" style="text-decoration:none"><button style="width:100%;min-height:48px;color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.14)">▦ OPEN BIG BATCH OVERVIEW <span id="batchCount" style="color:var(--faint);font-weight:400"></span></button></a></div>
+<div style="margin-bottom:14px"><a href="batch.html" style="text-decoration:none"><button style="width:100%;min-height:48px;color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.14)">② GO TO TOURNEY — narrow your 120 <span id="batchCount" style="color:var(--faint);font-weight:400"></span></button></a></div>
 <div id="batchTracker" style="display:none;background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:11px 13px;margin-bottom:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
     <span style="font-family:Consolas,monospace;font-size:11px;letter-spacing:2px;color:var(--gold)">🔢 BIG BATCH</span>
-    <span style="display:flex;gap:8px"><a href="batch.html" style="text-decoration:none"><button style="padding:7px 12px;min-height:0">▦ OPEN OVERVIEW</button></a>
+    <span style="display:flex;gap:8px"><a href="batch.html" style="text-decoration:none"><button style="padding:7px 12px;min-height:0">② TOURNEY</button></a>
     <button id="stopBatch" style="padding:7px 14px;min-height:0;color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1)">■ STOP</button></span>
   </div>
   <div style="height:9px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden;margin-top:9px"><div id="btFill" style="height:100%;background:linear-gradient(90deg,var(--gold),#f0d060);width:0%;transition:width .6s"></div></div>
   <div id="btMsg" style="font-family:Consolas,monospace;font-size:10.5px;color:var(--cyan);margin-top:5px"></div>
 </div>
-<div class="deck" id="deck"><div class="dhead" onclick="document.getElementById('deck').classList.toggle('open')">⚙ CONTROL DECK — source · pool · new round (tap to open)</div>
+<div class="deck open" id="deck"><div class="dhead" onclick="document.getElementById('deck').classList.toggle('open')">⚙ BATCH SETUP — source · pool · flavor (tap to collapse)</div>
 <div class="dbody">
   <div class="label">SOURCE — the face/geometry the styles filter through</div>
   <div class="tabs" id="srcTabs"></div>
@@ -74,9 +74,8 @@ a{color:var(--faint)}
   <textarea id="flavor" placeholder="e.g. 32-bit SNES JRPG portrait, Final Fantasy VI hero, Metal Gear tactical aesthetic, moody cinematic lighting" style="width:100%;min-height:60px;background:#0d0d11;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px;font-family:inherit"></textarea>
   <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap"><button class="cy" id="newRound" style="min-height:46px">🎲 NEW RANDOM ROUND FROM THESE</button><button id="restartBtn" style="min-height:46px;color:var(--faint);border-color:var(--border);background:transparent">⟲ RESTART TOURNEY (round 1)</button></div>
   <div style="margin-top:10px"><button id="bigBatch" style="min-height:48px;width:100%;color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.16)">🔢 START BIG BATCH — 120 blends of this source + pool</button>
-  <div style="font-size:10.5px;color:var(--faint);margin-top:5px">renders 120 distinct blends from the selected source & pool (~35 min); browse + mix them in the overview</div></div>
+  <div style="font-size:10.5px;color:var(--faint);margin-top:5px">renders 120 distinct blends from the selected source & pool (~35 min); browse, narrow & forge them on the ② TOURNEY page</div></div>
 </div></div>
-<div id="rounds">loading…</div>
 <div id="toast"></div>
 <script>
 const SB='https://hwqovzizjoelzfulhxem.supabase.co';
@@ -141,44 +140,16 @@ function updateSel(){
   const byTab=TABS.map(([k,lbl])=>{const n=[...picked].filter(f=>{const p=POOL.find(x=>x.file===f);return p&&(p.cat||'style')===k}).length;return n?`${n} ${lbl.toLowerCase()}`:null}).filter(Boolean);
   document.getElementById('selrow').textContent=picked.size?('▶ '+picked.size+' selected  ('+byTab.join(' + ')+')'):'▶ nothing selected — tap chips above';
 }
+// this page is the BATCH launcher — it only builds the setup chips; the round
+// grid + breed/bake now live on the ② TOURNEY page (batch.html). We still read
+// the latest round once, only to pre-fill the flavor box as a convenience.
 async function load(){
   loadMeta();
-  const rounds=await(await fetch(SB+'/rest/v1/st_rounds?select=*&order=round.desc&limit=8',{headers:H})).json();
-  const votes=await(await fetch(SB+'/rest/v1/st_votes?select=round,action&order=id.desc&limit=10',{headers:H})).json();
-  if(!rounds.length){document.getElementById('rounds').innerHTML='<div class="sub">no rounds synced yet — start one from the CONTROL DECK above, or in the Style Lab on the PC</div>';return}
-  const sig=JSON.stringify(rounds.map(r=>r.round));
-  latest=rounds[0].round;
-  const fEl=document.getElementById('flavor');
-  if(rounds[0].flavor&&document.activeElement!==fEl&&!fEl.value)fEl.value=rounds[0].flavor;
-  const voted=votes.some(v=>v.round===latest&&v.action!=='new_round');
-  if(sig===lastSig){refreshButtons(voted);return}
-  lastSig=sig;winners.clear();
-  document.getElementById('rounds').innerHTML=rounds.map(r=>{
-    const isLatest=r.round===latest;
-    const cards=r.recipes.map((rec,i)=>{
-      const rows=rec.loras.map(l=>{const p=Math.round(l.w*100);
-        return `<div class="wrow"><span class="wname">${l.file.replace('.safetensors','')}</span><span class="wtrack"><span class="wfill" style="display:block;width:${Math.min(100,p)}%"></span></span><span class="wpct">${p}%</span></div>`}).join('');
-      return `<div class="cand ${isLatest?'':'dis'}" data-i="${i}"><img loading="lazy" src="${r.images[i]}"><div class="cap"><span class="num">#${i} · ${rec.loras.length}-way · ${(r.source||'').replace('_dummy-','').replace('.png','')}</span>${rows}</div></div>`}).join('');
-    return `<div class="round"><div class="rhead"><span>ROUND ${r.round}${isLatest?' — TAP WINNERS':''}</span>
-      ${isLatest?`<span style="display:flex;gap:8px"><button id="send" disabled>SEND → BREED</button><button id="bakeBtn" disabled>🔥 BAKE</button></span>`:`<span class="badge">closed</span>`}
-      </div><div class="grid">${cards}</div></div>`}).join('');
-  document.querySelectorAll('.cand:not(.dis)').forEach(c=>c.onclick=()=>{
-    const i=+c.dataset.i;winners.has(i)?winners.delete(i):winners.add(i);c.classList.toggle('win');refreshButtons(false)});
-  const send=document.getElementById('send');
-  if(send)send.onclick=()=>{send.disabled=true;send.textContent='SENDING…';
-    sendLater({round:latest,winners:[...winners],action:'breed'},'sent — breeding round '+(latest+1))};
-  const bake=document.getElementById('bakeBtn');
-  if(bake)bake.onclick=()=>{if(winners.size!==1)return;bake.disabled=true;bake.textContent='🔥 SENDING…';
-    sendLater({round:latest,winners:[],action:'bake',bake:[...winners][0]},'bake sent — 60 images rendering on the 4080')};
-  refreshButtons(voted);
-}
-function refreshButtons(voted){
-  const send=document.getElementById('send'),bake=document.getElementById('bakeBtn');
-  if(!send)return;
-  if(voted){send.textContent='VOTE RECEIVED — 4080 working…';send.disabled=true;if(bake)bake.disabled=true;return}
-  send.disabled=!winners.size;
-  send.textContent=winners.size?`SEND ${winners.size} → BREED R${latest+1}`:'SEND → BREED';
-  if(bake)bake.disabled=winners.size!==1;
+  try{
+    const rounds=await(await fetch(SB+'/rest/v1/st_rounds?select=round,flavor&order=round.desc&limit=1',{headers:H})).json();
+    const fEl=document.getElementById('flavor');
+    if(rounds.length&&rounds[0].flavor&&document.activeElement!==fEl&&!fEl.value)fEl.value=rounds[0].flavor;
+  }catch(e){}
 }
 // fire the network AFTER the current paint so tapping feels instant (no INP lag)
 function sendLater(body,okMsg){setTimeout(async()=>{
