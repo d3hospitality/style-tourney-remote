@@ -20,6 +20,9 @@ button:disabled{opacity:.4}
 .ent div{font-size:8.5px;color:var(--faint);padding:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .ent.sel{border-color:#f87171;box-shadow:0 0 0 2px #f87171}
 .ent.sel::after{content:'✓';position:absolute;top:3px;right:4px;width:16px;height:16px;line-height:16px;font-size:11px;color:#fff;background:#f87171;border-radius:50%}
+.ent .m{position:absolute;top:2px;left:3px;font-size:11px;z-index:1;text-shadow:0 0 3px #000}
+.ent .qc{display:block;font-size:7.5px;color:var(--faint);padding:0 2px 2px;font-family:Consolas,monospace}
+.ent.gold{border-color:rgba(212,175,55,.5)}.ent.strag{border-color:rgba(248,113,113,.4)}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint)}
 .dot.up{background:var(--green);box-shadow:0 0 6px var(--green)}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:9}
@@ -72,6 +75,12 @@ a{color:var(--gold)}
 </div>
 
 <div class="card">
+  <div class="lbl">🔍 STYLE CHECK — which neutrals pass & why</div>
+  <div class="dim" style="margin-bottom:6px">Quality tracks the reference SOURCE. <b style="color:var(--gold)">🥇 golden</b> = rebuilt from your finished pipeline portraits (cleanest, most consistent). <b style="color:var(--cyan)">🧬 blend</b> = eye-aligned average of the top-20 scraped refs (good when the refs agree). <b style="color:#f87171">🔥 straggler</b> = expanded-cast with only poor scraped refs, pushed to high denoise (weakest). The <b>d</b> chip = denoise, <b>s</b> = portrait saturation (low = a marble/statue source). Tap the duds below → 🗑 DELETE to redo them.</div>
+  <div id="qcTally" class="emoList"></div>
+</div>
+
+<div class="card">
   <div class="lbl">CAST — <span id="entCount">0</span> entities · tap to select</div>
   <div id="delBar" style="display:none;gap:8px;align-items:center;margin-bottom:9px;flex-wrap:wrap">
     <button id="delBtn" style="color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.12)">🗑 DELETE 0</button>
@@ -88,6 +97,7 @@ const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json
 const STORE=SB+'/storage/v1/object/public/style-tourney/';
 let D=null,sig='';
 let selEnt=new Set(),delArmed=false;
+let QC={},QCC=null;
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
 async function cmd(action,payload){
   try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload})});return r.ok}catch(e){return false}
@@ -109,7 +119,9 @@ async function load(){
   }catch(e){document.getElementById('statusMsg').textContent='bridge offline'}
   try{
     D=await(await fetch(STORE+'studio_data.json?'+Date.now())).json();
-    const s=JSON.stringify([D.style_blend,D.emotion_styles,D.blends.map(b=>b.id),D.entities.map(e=>[e.slug,e.thumb])]);
+    try{const q=await(await fetch(STORE+'castqc.json?'+Date.now())).json();
+      QC={};q.cast.forEach(r=>QC[r.slug]=r);QCC=q.counts;}catch(e){}
+    const s=JSON.stringify([D.style_blend,D.emotion_styles,D.blends.map(b=>b.id),D.entities.map(e=>[e.slug,e.thumb]),Object.keys(QC).length]);
     if(s!==sig){sig=s;render()}
   }catch(e){}
 }
@@ -124,8 +136,14 @@ function render(){
   const sync=()=>{document.getElementById('emoBlend').value=es[document.getElementById('emoPick').value]||''};sync();
   document.getElementById('emoPick').onchange=sync;
   document.getElementById('entCount').textContent=D.count;
-  document.getElementById('entities').innerHTML=D.entities.map(e=>
-    `<div class="ent ${selEnt.has(e.slug)?'sel':''}" data-slug="${e.slug}"><img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div></div>`).join('');
+  const BADGE={golden:'🥇',blend:'🧬',straggler:'🔥'},CLS={golden:'gold',straggler:'strag'};
+  if(QCC){document.getElementById('qcTally').innerHTML=
+    `🥇 ${QCC.golden||0} golden (your pipeline portraits) · 🧬 ${QCC.blend||0} blend (top-20 scraped) · 🔥 ${QCC.straggler||0} straggler (poor refs)`;}
+  document.getElementById('entities').innerHTML=D.entities.map(e=>{
+    const q=QC[e.slug]||{},m=q.method;
+    const badge=m?`<span class="m">${BADGE[m]||''}</span>`:'';
+    const chip=q.denoise!=null?`<span class="qc">d${q.denoise}${q.sat!=null?'·s'+q.sat:''}</span>`:'';
+    return `<div class="ent ${selEnt.has(e.slug)?'sel':''} ${CLS[m]||''}" data-slug="${e.slug}">${badge}<img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div>${chip}</div>`;}).join('');
   document.querySelectorAll('#entities .ent').forEach(c=>c.onclick=()=>{
     const s=c.dataset.slug;selEnt.has(s)?selEnt.delete(s):selEnt.add(s);c.classList.toggle('sel');updateDelBar();});
   updateDelBar();
