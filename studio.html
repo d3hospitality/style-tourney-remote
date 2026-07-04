@@ -1,0 +1,102 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D3 SPRITE STUDIO — remote</title><style>
+:root{--bg:#0a0a0c;--card:#16161c;--border:#2a2a35;--gold:#d4af37;--text:#e0ddd5;--faint:#7a7a88;--cyan:#00d9ff;--green:#4ade80}
+*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:14px;max-width:900px;margin:0 auto;padding-bottom:40px}
+h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size:16px}
+.sub{color:var(--faint);font-size:12px;margin:3px 0 14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:13px;margin-bottom:14px}
+.lbl{font-family:Consolas,monospace;font-size:10px;letter-spacing:2px;color:var(--gold);margin-bottom:8px}
+.dim{color:var(--faint);font-size:11px}
+select,button{background:#111115;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px}
+select{width:100%}button{cursor:pointer;min-height:44px;font-weight:600}
+button.go{color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.15)}
+button.fac{color:var(--green);border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.12);width:100%}
+button:disabled{opacity:.4}
+.row{display:flex;gap:8px;margin-bottom:8px}
+.emoList{font-family:Consolas,monospace;font-size:10.5px;color:var(--cyan);line-height:1.7;margin-top:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
+.ent{background:#0d0d11;border:1px solid var(--border);border-radius:8px;overflow:hidden;text-align:center}
+.ent img{width:100%;aspect-ratio:1;object-fit:cover;background:#000}
+.ent div{font-size:8.5px;color:var(--faint);padding:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.dot.up{background:var(--green);box-shadow:0 0 6px var(--green)}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:9}
+a{color:var(--gold)}
+</style></head><body>
+<h1>D3 SPRITE STUDIO — remote</h1>
+<div class="sub"><span class="dot" id="dot"></span> <span id="statusMsg">connecting…</span> · <a href="index.html">← style tourney</a></div>
+
+<div class="card">
+  <div class="lbl">STYLE BLEND — project-wide</div>
+  <div class="dim" style="margin-bottom:7px">Every entity's sprites render in this blend (dummy emotion states lock the geometry).</div>
+  <select id="projBlend"><option value="">loading…</option></select>
+  <div class="lbl" style="margin-top:12px">PER-EMOTION OVERRIDE</div>
+  <div class="row"><select id="emoPick" style="flex:1"></select><select id="emoBlend" style="flex:1"></select></div>
+  <div class="emoList" id="emoList"></div>
+</div>
+
+<div class="card">
+  <div class="lbl">GENERATE</div>
+  <button class="fac" id="factory">🏭 FACTORY — render all entities in the assigned blend</button>
+  <div class="dim" style="margin-top:6px">Geometry-locked to dummy states · outputs archive into the blend's folder · runs on the 4080 (~hours for full cast)</div>
+</div>
+
+<div class="card">
+  <div class="lbl">CAST — <span id="entCount">0</span> entities</div>
+  <div class="grid" id="entities"></div>
+</div>
+<div id="toast"></div>
+<script>
+const SB='https://hwqovzizjoelzfulhxem.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cW92eml6am9lbHpmdWxoeGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzU5MTQsImV4cCI6MjA5NDIxMTkxNH0.U-4EkTX5FuvRwncQnejAQUaPLCLRyE8yk1uCQfz8XdU';
+const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
+const STORE=SB+'/storage/v1/object/public/style-tourney/';
+let D=null,sig='';
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
+async function cmd(action,payload){
+  try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload})});return r.ok}catch(e){return false}
+}
+async function load(){
+  try{
+    const st=await(await fetch(STORE+'studio_status.json?'+Date.now())).json();
+    document.getElementById('dot').className='dot'+(st.up?' up':'');
+    document.getElementById('statusMsg').textContent=st.up?('studio online · '+st.at):'studio offline — start the D3 stack';
+  }catch(e){document.getElementById('statusMsg').textContent='bridge offline'}
+  try{
+    D=await(await fetch(STORE+'studio_data.json?'+Date.now())).json();
+    const s=JSON.stringify([D.style_blend,D.emotion_styles,D.blends.map(b=>b.id),D.entities.length]);
+    if(s!==sig){sig=s;render()}
+  }catch(e){}
+}
+function render(){
+  const byId=Object.fromEntries(D.blends.map(b=>[b.id,b.name]));
+  document.getElementById('projBlend').innerHTML='<option value="">— none —</option>'+
+    D.blends.map(b=>`<option value="${b.id}" ${D.style_blend===b.id?'selected':''}>${b.name} (${b.loras.length})</option>`).join('');
+  document.getElementById('emoPick').innerHTML=D.variations.map(v=>`<option>${v}</option>`).join('');
+  document.getElementById('emoBlend').innerHTML='<option value="">— clear —</option>'+D.blends.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  const es=D.emotion_styles||{};
+  document.getElementById('emoList').innerHTML=Object.keys(es).length?Object.entries(es).map(([e,b])=>`${e} → ${byId[b]||b}`).join('<br>'):'<span class="dim">no per-emotion overrides</span>';
+  const sync=()=>{document.getElementById('emoBlend').value=es[document.getElementById('emoPick').value]||''};sync();
+  document.getElementById('emoPick').onchange=sync;
+  document.getElementById('entCount').textContent=D.count;
+  document.getElementById('entities').innerHTML=D.entities.map(e=>
+    `<div class="ent"><img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div></div>`).join('');
+}
+document.getElementById('projBlend').onchange=async()=>{
+  const v=document.getElementById('projBlend').value;
+  toast('assigning…');(await cmd('set_style',{blend:v||null}))?toast('project blend set'):toast('failed');
+};
+document.getElementById('emoBlend').onchange=async()=>{
+  const emo=document.getElementById('emoPick').value,v=document.getElementById('emoBlend').value;
+  toast('assigning…');(await cmd('set_style',{emotion:emo,blend:v||null}))?toast(emo+' set'):toast('failed');
+};
+let facArmed=false;
+document.getElementById('factory').onclick=async()=>{
+  const b=document.getElementById('factory');
+  if(!facArmed){facArmed=true;b.textContent='⚠ TAP AGAIN — runs the whole cast';setTimeout(()=>{facArmed=false;b.textContent='🏭 FACTORY — render all entities in the assigned blend'},3500);return}
+  facArmed=false;b.textContent='🏭 SENDING…';
+  (await cmd('factory',{charts:'anchor'}))?toast('factory started on the 4080'):toast('failed');
+  setTimeout(()=>b.textContent='🏭 FACTORY — render all entities in the assigned blend',2500);
+};
+load();setInterval(load,8000);
+</script></body></html>
