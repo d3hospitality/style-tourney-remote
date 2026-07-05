@@ -80,6 +80,7 @@ a{color:var(--gold)}
 </div>
 <div class="card" style="border-color:rgba(212,175,55,.55)">
   <div class="lbl" style="color:var(--gold)">⭐ MOTHERLODE — the master training set <span class="dim" id="ldMeta"></span></div>
+  <div id="ldTrainProg" style="display:none;margin:8px 0 10px"></div>
   <div class="dim" style="margin:2px 0 6px">tap a sprite to mark → remove · then hit TRAIN to blend what's left into one consistent style</div>
   <button id="ldTrain" style="width:100%;min-height:48px;font-weight:700;color:#0a0a0c;background:#f0abfc;border-color:#f0abfc;margin-bottom:8px">🔥 TRAIN — blend these sprites into a consistent style</button>
   <div id="ldRemBar" style="display:none;margin-bottom:8px;position:sticky;top:6px;z-index:6"><button id="ldRemove" style="width:100%;min-height:44px;color:var(--red);border-color:rgba(248,113,113,.6);background:rgba(248,113,113,.15);font-weight:700">🗑 REMOVE <span id="ldRemCount">0</span> FROM MOTHERLODE</button></div>
@@ -290,12 +291,27 @@ document.getElementById('viewStyle').onchange=renderView;
 let LD=null,ldMark=new Set(),ldSig='';
 async function loadLode(){
   try{LD=await(await fetch(STORE+'motherlode.json?'+Date.now())).json();}catch(e){return}
-  const sig=(LD.updated||'')+'|'+(LD.total||0);
+  const t=LD.train||{};
+  const sig=(LD.updated||'')+'|'+(LD.total||0)+'|'+(t.pct||'')+'|'+(t.at||'');
   if(sig===ldSig&&!ldMark.size)return;ldSig=sig;renderLode();
 }
 function renderLode(){
   const g=document.getElementById('ldGrid');
   document.getElementById('ldMeta').textContent='· '+(LD&&LD.total||0)+' sprites · updated '+(LD&&LD.updated||'—');
+  const t=(LD&&LD.train)||null,tp=document.getElementById('ldTrainProg');
+  if(tp){
+    if(t&&t.mode!=='done'&&t.pct!=null){
+      tp.style.display='block';
+      tp.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+        <span style="color:var(--gold)">🔥 TRAINING MOTHERLODE ${t.mode==='estimate'?'(estimated)':''}</span>
+        <span class="dim">step ${t.step||'?'}/${t.total||'?'} · ~${t.eta||'?'} left${t.loss?' · loss '+t.loss:''}</span></div>
+      <div style="height:10px;background:#0d0d11;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+        <div style="height:100%;width:${t.pct}%;background:linear-gradient(90deg,var(--gold),#f0abfc);transition:width 1s"></div></div>`;
+    }else if(t&&t.mode==='done'){
+      tp.style.display='block';
+      tp.innerHTML=`<div style="font-size:12px;color:var(--green)">✅ MOTHERLODE style trained (${t.at||''}) — motherlode-style-LATEST.safetensors ready</div>`;
+    }else tp.style.display='none';
+  }
   document.getElementById('ldRemBar').style.display=ldMark.size?'block':'none';
   document.getElementById('ldRemCount').textContent=ldMark.size;
   const items=(LD&&LD.items)||[];
