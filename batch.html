@@ -66,8 +66,8 @@ a{color:var(--gold)}
     <button id="mixBtn" disabled style="flex:1;font-size:11px">🎨 preview merge (4 seeds)</button>
     <button id="shufBtn" disabled style="flex:1;font-size:11px">🔁 reshuffle favs' pool</button>
   </div>
-  <div style="margin-top:8px"><button id="buildBtn" disabled style="width:100%;color:#f0abfc;border-color:rgba(240,171,252,.5);background:rgba(240,171,252,.1)">🏗️ BUILD TRAINING LIBRARY — render the cast in each selected style</button></div>
-  <div style="font-size:10.5px;color:var(--faint);margin-top:7px;line-height:1.5"><b style="color:var(--cyan)">NARROW</b> = breed 24 toward favs · <b style="color:var(--gold)">FORGE MASTER</b> = merge favs into one trainable style · <b style="color:#f0abfc">BUILD LIBRARY</b> = for EACH selected style, render every philosopher (a big per-style training set on the 4080) — this is the corpus you train the final LoRA from</div>
+  <div style="margin-top:8px"><button id="buildBtn" disabled style="width:100%;min-height:48px;font-weight:700;color:#0a0a0c;border-color:#f0abfc;background:#f0abfc">🎬 RUN SPRITES — every philosopher × each selected blend</button></div>
+  <div style="font-size:10.5px;color:var(--faint);margin-top:7px;line-height:1.5"><b style="color:#f0abfc">RUN SPRITES</b> = for EACH blend you selected, render the WHOLE cast (≈81 philosophers) as sprites. Pick 10 blends → ~810 renders across 10 different styles. Big GPU job — watch it on <b>③ TRAIN + ASSIGN</b>. · <b style="color:var(--cyan)">NARROW</b> = breed 24 toward favs · <b style="color:var(--gold)">FORGE MASTER</b> = merge favs into one trainable style</div>
   <div id="libView" style="margin-top:10px"></div>
 </div>
 <div id="toast"></div>
@@ -154,15 +154,20 @@ document.getElementById('narrowBtn').onclick=()=>{
     setTimeout(()=>{btn.disabled=false;btn.textContent='🔀 NARROW — breed round from favs'},2500);
   },0);
 };
-document.getElementById('buildBtn').onclick=()=>{
-  const n=picked.size;
-  const emo=confirm('BUILD TRAINING LIBRARY from '+n+' selected styles.\n\nOK = ANCHOR ONLY (1 sprite × ~80 philosophers × '+n+' styles — faster, great for training a style)\nCancel = ALL EMOTIONS (23 × 80 × '+n+' — huge, many hours)')?'anchor':'all';
-  const btn=document.getElementById('buildBtn');btn.disabled=true;btn.textContent='🏗️ SENDING…';
+let runArmed=false,runTimer=null;
+const RUNLBL='🎬 RUN SPRITES — every philosopher × each selected blend';
+document.getElementById('buildBtn').onclick=function(){
+  const btn=this,n=picked.size;if(!n)return;const total=n*81;
+  if(!runArmed){                                   // non-blocking two-tap confirm (no confirm() jank)
+    runArmed=true;btn.style.background='#fbbf24';
+    btn.textContent=`⚠️ TAP AGAIN — run ${n} blend${n>1?'s':''} × ~81 = ~${total} sprites`;
+    runTimer=setTimeout(()=>{runArmed=false;btn.style.background='#f0abfc';btn.textContent=RUNLBL;},4500);return;}
+  clearTimeout(runTimer);runArmed=false;btn.disabled=true;btn.style.background='#f0abfc';btn.textContent='🎬 SENDING…';
   const picks=[...picked.keys()].map(i=>({i}));
   setTimeout(async()=>{
-    try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'build_library',payload:{picks,emotions:emo}})});
-      toast(r.ok?'building library — watch progress on the Studio page':'failed (is the Studio bridge up?)')}catch(e){toast('offline?')}
-    setTimeout(()=>{btn.disabled=false;btn.textContent='🏗️ BUILD TRAINING LIBRARY — render the cast in each selected style'},3000);
+    try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'build_library',payload:{picks,emotions:'anchor'}})});
+      toast(r.ok?`🎬 running ~${total} sprites across ${n} style${n>1?'s':''} — watch ③ TRAIN + ASSIGN`:'failed (is the Studio bridge up?)')}catch(e){toast('offline?')}
+    setTimeout(()=>{btn.disabled=false;btn.textContent=RUNLBL;},3000);
   },0);
 };
 document.getElementById('forgeBtn').onclick=()=>{
