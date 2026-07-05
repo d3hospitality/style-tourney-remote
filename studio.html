@@ -297,7 +297,7 @@ async function loadLode(){
 }
 function renderLode(){
   const g=document.getElementById('ldGrid');
-  document.getElementById('ldMeta').textContent='· '+(LD&&LD.total||0)+' sprites · updated '+(LD&&LD.updated||'—');
+  document.getElementById('ldMeta').textContent='· '+(LD&&LD.total||0)+' sprites · updated '+(LD&&LD.updated||'—')+(LD&&LD.cycle_count?' · 🔁 '+LD.cycle_count+' training cycle'+(LD.cycle_count>1?'s':'')+' done':'');
   const t=(LD&&LD.train)||null,tp=document.getElementById('ldTrainProg');
   if(tp){
     if(t&&t.mode!=='done'&&t.pct!=null){
