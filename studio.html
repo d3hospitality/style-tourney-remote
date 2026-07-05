@@ -77,6 +77,12 @@ a{color:var(--gold)}
   </div>
   <div class="grid" id="viewGrid" style="margin-top:8px"></div>
 </div>
+<div class="card" style="border-color:rgba(212,175,55,.55)">
+  <div class="lbl" style="color:var(--gold)">⭐ MOTHERLODE — the master training set <span class="dim" id="ldMeta"></span></div>
+  <div class="dim" style="margin:2px 0 6px">every future LoRA trains on these · tap a sprite to mark it, then remove</div>
+  <div id="ldRemBar" style="display:none;margin-bottom:8px"><button id="ldRemove" style="width:100%;color:var(--red);border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1)">🗑 REMOVE <span id="ldRemCount">0</span> FROM MOTHERLODE</button></div>
+  <div class="grid" id="ldGrid"></div>
+</div>
 
 <div class="card">
   <div class="lbl" style="color:#f0abfc">🔥 TRAIN A STYLE LoRA</div>
@@ -278,6 +284,30 @@ document.getElementById('lodeSend').onclick=async function(){
   this.disabled=false;renderView();
 };
 document.getElementById('viewStyle').onchange=renderView;
+// ⭐ MOTHERLODE card — the master training set (published by the PC watcher)
+let LD=null,ldMark=new Set(),ldSig='';
+async function loadLode(){
+  try{LD=await(await fetch(STORE+'motherlode.json?'+Date.now())).json();}catch(e){return}
+  const sig=(LD.updated||'')+'|'+(LD.total||0);
+  if(sig===ldSig&&!ldMark.size)return;ldSig=sig;renderLode();
+}
+function renderLode(){
+  const g=document.getElementById('ldGrid');
+  document.getElementById('ldMeta').textContent='· '+(LD&&LD.total||0)+' sprites · updated '+(LD&&LD.updated||'—');
+  document.getElementById('ldRemBar').style.display=ldMark.size?'block':'none';
+  document.getElementById('ldRemCount').textContent=ldMark.size;
+  g.innerHTML=(LD&&LD.items||[]).map(it=>{const on=ldMark.has(it.file);
+    return `<div class="ent" onclick="togLdMark('${it.file.replace(/'/g,"\\'")}')" style="cursor:pointer;${on?'outline:2px solid var(--red);border-radius:8px;opacity:.75':''}"><img loading="lazy" decoding="async" src="${it.thumb}"><div style="font-size:8.5px">${it.file.replace('.png','').replace(/__/g,' · ').replace(/_/g,' ')}</div></div>`;}).join('')
+    ||'<div class="dim" style="padding:10px">empty — pick favorites in PREVIEW A STYLE above and tap ⭐ ADD TO MOTHERLODE</div>';
+}
+function togLdMark(f){ldMark.has(f)?ldMark.delete(f):ldMark.add(f);renderLode();}
+document.getElementById('ldRemove').onclick=async function(){
+  const files=[...ldMark];this.disabled=true;
+  try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'motherlode_remove',payload:{files}})});
+    toast(r.ok?('🗑 removing '+files.length+' — refreshes shortly'):'failed');if(r.ok)ldMark.clear();}catch(e){toast('offline?')}
+  this.disabled=false;renderLode();
+};
+loadLode();setInterval(loadLode,15000);
 loadBlendView();setInterval(loadBlendView,20000);
 load();setInterval(load,5000);
 </script></body></html>
