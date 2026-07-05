@@ -47,7 +47,8 @@ a{color:var(--gold)}
 <div class="sub"><span class="dot" id="dot"></span> <span id="statusMsg">connecting…</span></div>
 <div class="card" id="jobCard" style="display:none;border-color:var(--green)">
   <div class="lbl" style="color:var(--green)">⚙ RUNNING <span id="jobMode"></span></div>
-  <div style="height:10px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden"><div id="jobFill" style="height:100%;background:linear-gradient(90deg,var(--green),#86efac);width:0%;transition:width .8s"></div></div>
+  <div style="height:12px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden"><div id="jobFill" style="height:100%;background:linear-gradient(90deg,var(--green),#86efac,var(--green));background-size:200% 100%;width:0%;transition:width .8s;animation:jobshimmer 1.4s linear infinite"></div></div>
+  <style>@keyframes jobshimmer{to{background-position:-200% 0}}</style>
   <div id="jobMsg" style="font-family:Consolas,monospace;font-size:10.5px;color:var(--cyan);margin-top:6px"></div>
 </div>
 
@@ -133,12 +134,19 @@ async function load(){
     const job=st.job||{};const jc=document.getElementById('jobCard');
     if(job.active){
       jc.style.display='';
-      const pct=(job.pct!=null)?job.pct:(job.total_units?Math.round(100*(job.done_units||0)/job.total_units):0);
+      const done=job.done_units||0,total=job.total_units||0;
+      const pct=(job.pct!=null)?job.pct:(total?Math.round(100*done/total):0);
       document.getElementById('jobFill').style.width=pct+'%';
       document.getElementById('jobMode').textContent=job.mode?('· '+job.mode):'';
-      const unit=job.total_units?(' ('+(job.done_units||0)+'/'+job.total_units+')'):'';
-      document.getElementById('jobMsg').textContent=(job.slug||'')+' · '+(job.stage||'working')+unit+' · '+pct+'%';
-    }else{jc.style.display='none';}
+      let eta='';                                    // smoothed client-side rate → ETA
+      if(total&&done){const now=Date.now();
+        if(window._ld!=null&&done>window._ld){const dt=(now-window._lt)/1000,dd=done-window._ld;
+          if(dt>0){const r=dd/dt;window._r=window._r?window._r*0.7+r*0.3:r;}}
+        if(window._ld==null||done>window._ld){window._ld=done;window._lt=now;}
+        if(window._r>0){const rem=(total-done)/window._r,h=Math.floor(rem/3600),m=Math.round((rem%3600)/60);
+          eta=h>0?`~${h}h ${m}m left`:`~${m}m left`;}}
+      document.getElementById('jobMsg').textContent=`${job.stage||'working'} · ${done}/${total} · ${pct}%${eta?' · '+eta:''}`;
+    }else{jc.style.display='none';window._ld=null;window._r=0;}
   }catch(e){document.getElementById('statusMsg').textContent='bridge offline'}
   try{
     D=await(await fetch(STORE+'studio_data.json?'+Date.now())).json();
@@ -249,5 +257,5 @@ function renderView(){
 }
 document.getElementById('viewStyle').onchange=renderView;
 loadBlendView();setInterval(loadBlendView,20000);
-load();setInterval(load,8000);
+load();setInterval(load,5000);
 </script></body></html>
