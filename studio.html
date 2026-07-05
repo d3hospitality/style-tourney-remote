@@ -72,6 +72,9 @@ a{color:var(--gold)}
   <div class="dim" style="margin-bottom:7px">Every philosopher rendered in the picked style (identity from their saved sprite · pose from the dummy · look from the blend). Updates live as the build runs.</div>
   <select id="viewStyle"><option value="">— pick a built style —</option></select>
   <div id="viewMeta" class="dim" style="margin-top:6px"></div>
+  <div id="lodeBar" style="display:none;gap:8px;align-items:center;margin-top:8px;position:sticky;top:6px;z-index:5">
+    <button id="lodeSend" style="flex:1;min-height:44px;font-weight:700;color:#0a0a0c;background:var(--gold);border-color:var(--gold)">⭐ ADD <span id="lodeCount">0</span> TO MOTHERLODE — master training set</button>
+  </div>
   <div class="grid" id="viewGrid" style="margin-top:8px"></div>
 </div>
 
@@ -246,15 +249,34 @@ async function loadBlendView(){
   }
   renderView();
 }
+// MOTHERLODE — tap preview sprites to pick favorites; they land in the master
+// training folder on the PC and feed every future LoRA train.
+let lode=new Set();   // "style||slug"
 function renderView(){
   const id=document.getElementById('viewStyle').value;
   const st=(BV&&BV.styles||[]).find(s=>s.id===id);
   const grid=document.getElementById('viewGrid'),meta=document.getElementById('viewMeta');
   const has=BV&&BV.styles&&BV.styles.length;
+  updateLodeBar();
   if(!st){grid.innerHTML='';meta.textContent=has?('updated '+BV.updated+' · '+(BV.total||0)+' sprites in '+BV.styles.length+' styles — pick one above'):'no preview yet — start a BUILD LIBRARY on the ② TOURNEY page';return}
-  meta.textContent=st.count+' philosophers · updated '+BV.updated;
-  grid.innerHTML=st.sprites.map(s=>`<div class="ent"><img loading="lazy" src="${s.thumb}"><div>${s.slug.replace(/_/g,' ')}</div></div>`).join('');
+  meta.textContent=st.count+' philosophers · updated '+BV.updated+' · tap sprites to pick for ⭐ MOTHERLODE';
+  grid.innerHTML=st.sprites.map(s=>{const k=st.id+'||'+s.slug,on=lode.has(k);
+    return `<div class="ent" onclick="togLode('${st.id}','${s.slug}')" style="cursor:pointer;${on?'outline:2px solid var(--gold);border-radius:8px':''}"><img loading="lazy" decoding="async" src="${s.thumb}">${on?'<div style="position:absolute;margin-top:-24px;margin-left:4px">⭐</div>':''}<div>${s.slug.replace(/_/g,' ')}</div></div>`;}).join('');
 }
+function togLode(style,slug){const k=style+'||'+slug;lode.has(k)?lode.delete(k):lode.add(k);renderView();}
+function updateLodeBar(){
+  const bar=document.getElementById('lodeBar');if(!bar)return;
+  bar.style.display=lode.size?'flex':'none';
+  document.getElementById('lodeCount').textContent=lode.size;
+}
+document.getElementById('lodeSend').onclick=async function(){
+  const items=[...lode].map(k=>{const [style,slug]=k.split('||');return {style,slug};});
+  this.disabled=true;
+  try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'motherlode_add',payload:{items}})});
+    toast(r.ok?('⭐ '+items.length+' sent to the MOTHERLODE — they now feed every training run'):'failed — bridge up?');
+    if(r.ok)lode.clear();}catch(e){toast('offline?')}
+  this.disabled=false;renderView();
+};
 document.getElementById('viewStyle').onchange=renderView;
 loadBlendView();setInterval(loadBlendView,20000);
 load();setInterval(load,5000);
