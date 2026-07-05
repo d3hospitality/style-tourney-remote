@@ -97,7 +97,11 @@ const DEF_CONS=['Eyes closed → open the eyes','Cutout clipped hair/clothing (f
 const DEF_STAND=['Eyes always open, direct forward gaze','Keep all dark hair & clothing in the cutout','Full head-and-shoulders bust, consistent scale','Era-appropriate outfit for the person'];
 const norm=s=>String(s).trim().toLowerCase().replace(/\s+/g,' ');
 function uniq(...a){const seen=new Set(),out=[];for(const v of [].concat(...a)){if(!v)continue;const k=norm(v);if(!seen.has(k)){seen.add(k);out.push(String(v).trim());}}return out;}
-let D=null,filter='bad-review',NOTES={considerations:[],standing:[],sprites:{},ratings:{}},BYSLUG={},noteSlug=null,lastGridSig='';
+let D=null,filter='bad-review',NOTES={considerations:[],standing:[],sprites:{},ratings:{}},BYSLUG={},noteSlug=null,cells={},gridKey='';
+function cellClass(x){const r=NOTES.ratings[x.slug]||0;return 'jc v-'+x.verdict+(hasNote(x.slug)?' hasnote':'')+(r>=4?' fav':'');}
+function cellSig(x){const s=NOTES.sprites[x.slug];return [x.verdict,x.score,x.reason,NOTES.ratings[x.slug]||0,s?(s.checked||[]).length:0,s&&s.text?1:0].join('|');}
+function cellInner(x){const s=NOTES.sprites[x.slug],cnt=s&&s.checked?s.checked.length:0,r=NOTES.ratings[x.slug]||0,n=hasNote(x.slug);
+  return `<span class="star${r?'':' empty'}" onclick="event.stopPropagation();rate('${x.slug}')">${r?'★'.repeat(r):'☆'}</span>${n?`<span class="note-dot">💬${cnt||''}</span>`:''}<img loading="lazy" decoding="async" src="${x.thumb}"><div class="jn">${x.name}</div><div class="jr"><span class="bdg">${BADGE[x.verdict]} ${x.score}</span> · ${x.reason}</div>`;}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
 function hasNote(slug){const s=NOTES.sprites[slug];return s&&((s.checked&&s.checked.length)||s.text)}
 async function loadNotes(){
@@ -174,18 +178,21 @@ function show(){
   if(filter==='starred'){list=(D.cast||[]).filter(x=>NOTES.ratings[x.slug]).sort((a,b)=>(NOTES.ratings[b.slug]||0)-(NOTES.ratings[a.slug]||0));}
   else{const want=({'bad-review':['bad','review'],'bad':['bad'],'review':['review'],'good':['good'],'all':['good','bad','review']})[filter];
     list=(D.cast||[]).filter(x=>want.includes(x.verdict));}
-  // only rebuild the (expensive) 73-cell grid when what it shows actually changes —
-  // not on every 15s status tick during a run. Keeps taps from being blocked.
-  const gridSig=JSON.stringify([filter,list.map(x=>[x.slug,x.verdict,x.score]),NOTES.ratings,
-    Object.fromEntries(Object.entries(NOTES.sprites).map(([k,v])=>[k,(v.checked||[]).length+(v.text?1:0)]))]);
-  if(gridSig===lastGridSig)return;
-  lastGridSig=gridSig;
-  document.getElementById('grid').innerHTML=list.length?list.map(x=>{
-    const s=NOTES.sprites[x.slug],n=hasNote(x.slug),cnt=s&&s.checked?s.checked.length:0;
-    const r=NOTES.ratings[x.slug]||0;
-    const star=`<span class="star${r?'':' empty'}" onclick="event.stopPropagation();rate('${x.slug}')">${r?'★'.repeat(r):'☆'}</span>`;
-    return `<div class="jc v-${x.verdict}${n?' hasnote':''}${r>=4?' fav':''}" onclick="openNote('${x.slug}')">${star}${n?`<span class="note-dot">💬${cnt||''}</span>`:''}<img loading="lazy" decoding="async" src="${x.thumb}"><div class="jn">${x.name}</div><div class="jr"><span class="bdg">${BADGE[x.verdict]} ${x.score}</span> · ${x.reason}</div></div>`;}).join('')
-    :'<div class="dim" style="padding:16px">none in this filter 🎉</div>';
+  // SURGICAL render: build cells once; on updates touch only the cells that
+  // actually changed (usually 0–2 per tick), never rebuild all 73. This is what
+  // keeps taps from being blocked by a big innerHTML task.
+  const g=document.getElementById('grid');
+  const key=filter+'::'+list.map(x=>x.slug).join(',');
+  if(key!==gridKey){                       // membership/filter changed → one rebuild
+    gridKey=key;cells={};
+    g.innerHTML=list.length?list.map(x=>
+      `<div class="${cellClass(x)}" data-slug="${x.slug}" data-sig="${cellSig(x)}" onclick="openNote('${x.slug}')">${cellInner(x)}</div>`).join('')
+      :'<div class="dim" style="padding:16px">none in this filter 🎉</div>';
+    g.querySelectorAll('.jc[data-slug]').forEach(el=>cells[el.dataset.slug]=el);
+  }else{                                   // same cells → patch only what changed
+    list.forEach(x=>{const el=cells[x.slug];if(!el)return;const sig=cellSig(x);
+      if(el.dataset.sig===sig)return;el.dataset.sig=sig;el.className=cellClass(x);el.innerHTML=cellInner(x);});
+  }
 }
 document.querySelectorAll('#filters .chip').forEach(c=>c.onclick=()=>{
   filter=c.dataset.f;document.querySelectorAll('#filters .chip').forEach(x=>x.classList.toggle('on',x===c));show();});
