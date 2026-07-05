@@ -19,11 +19,18 @@ h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size
 .jc.v-good{border-color:rgba(74,222,128,.5)}.jc.v-bad{border-color:rgba(248,113,113,.6)}.jc.v-review{border-color:rgba(251,191,36,.5)}
 .bdg{font-weight:700}.v-good .bdg{color:var(--green)}.v-bad .bdg{color:var(--red)}.v-review .bdg{color:var(--amber)}
 button{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(212,175,55,.5);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;min-height:40px}
-#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:9}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:29}
+.jc{position:relative;cursor:pointer}
+.jc .note-dot{position:absolute;top:5px;right:6px;font-size:14px;filter:drop-shadow(0 0 3px #000);z-index:2}
+.jc.hasnote{border-color:var(--gold)}
+#noteModal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+#noteBox{background:var(--card);border:1px solid var(--gold);border-radius:13px;max-width:430px;width:100%;padding:16px}
+#noteBox img{width:110px;height:110px;object-fit:cover;border-radius:9px;float:left;margin:2px 12px 6px 0;background:#000}
+#noteText{width:100%;min-height:96px;background:#0d0d11;border:1px solid var(--border);border-radius:9px;color:var(--text);padding:10px;font-size:15px;font-family:inherit;margin-top:8px;resize:vertical;clear:both}
 </style></head><body>
 <h1>D3 · ④ PERMALOOP</h1>
 <div class="nav"><a href="index.html" class="st">① BATCH</a><a href="batch.html" class="st">② TOURNEY</a><a href="studio.html" class="st">③ TRAIN + ASSIGN</a><span class="st on">④ LOOP</span></div>
-<div class="sub">the self-tightening cast QC — free heuristics + gpt-4o vision score every neutral good / bad / review; the loop culls the bad, re-runs them, trains, and repeats. This is the watch-and-steer dashboard.</div>
+<div class="sub">the self-tightening cast QC — gpt-4o scores every neutral; the loop re-rolls the bad ones. <b style="color:var(--gold)">💬 Tap any sprite to leave a note</b> — I read them all and act on your feedback (outfit, likeness, redo, etc.).</div>
 <div class="card" id="statusCard">
   <div class="lbl">STATUS <span class="dim" id="updated"></span></div>
   <div class="dim" id="phaseline" style="margin:2px 0 8px;color:var(--cyan)"></div>
@@ -43,6 +50,18 @@ button{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(2
   <span class="chip" data-f="all">all</span>
 </div>
 <div class="grid" id="grid"></div>
+<div id="noteModal" onclick="if(event.target.id==='noteModal')closeNote()">
+  <div id="noteBox">
+    <div class="lbl">💬 NOTE FOR CLAUDE <span class="dim" id="noteName"></span></div>
+    <img id="noteImg" src="">
+    <div class="dim" id="noteVerdict" style="margin:6px 0 2px"></div>
+    <textarea id="noteText" placeholder="e.g. wrong outfit — Victorian suit not a toga · doesn't look like him · too dark · redo · perfect, keep it"></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button onclick="saveNote()" style="flex:1;color:var(--green);border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.12)">💾 SAVE</button>
+      <button onclick="closeNote()" style="color:var(--faint);border-color:var(--border);background:transparent">cancel</button>
+    </div>
+  </div>
+</div>
 <div id="toast"></div>
 <script>
 const SB='https://hwqovzizjoelzfulhxem.supabase.co';
@@ -51,8 +70,24 @@ const H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/
 const STORE=SB+'/storage/v1/object/public/style-tourney/';
 const BADGE={good:'✅',bad:'❌',review:'⚠'};
 const PHASE={cull:'🔧 culling & regenerating',wait:'💤 waiting between cycles',idle:'✓ idle'};
-let D=null,filter='bad-review';
+let D=null,filter='bad-review',NOTES={},BYSLUG={},noteSlug=null;
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
+async function loadNotes(){try{NOTES=(await(await fetch(STORE+'castnotes.json?'+Date.now())).json()).notes||{}}catch(e){NOTES={}}}
+function openNote(slug){noteSlug=slug;const x=BYSLUG[slug];if(!x)return;
+  document.getElementById('noteName').textContent=x.name;
+  document.getElementById('noteImg').src=x.thumb;
+  document.getElementById('noteVerdict').textContent=(BADGE[x.verdict]||'')+' '+x.score+' · '+x.reason;
+  document.getElementById('noteText').value=(NOTES[slug]&&NOTES[slug].text)||'';
+  document.getElementById('noteModal').style.display='flex';
+  setTimeout(()=>document.getElementById('noteText').focus(),50);}
+function closeNote(){document.getElementById('noteModal').style.display='none';noteSlug=null;}
+async function saveNote(){
+  const t=document.getElementById('noteText').value.trim();const x=BYSLUG[noteSlug]||{};
+  if(t)NOTES[noteSlug]={text:t,name:x.name,verdict:x.verdict,at:new Date().toISOString()};else delete NOTES[noteSlug];
+  try{await fetch(SB+'/storage/v1/object/style-tourney/castnotes.json',{method:'POST',headers:{...H,'x-upsert':'true'},body:JSON.stringify({project:'sophicon',updated:new Date().toISOString(),notes:NOTES})});
+    toast(t?'💬 saved — Claude will see it':'note cleared');}
+  catch(e){toast('⚠ save failed')}
+  closeNote();show();}
 async function ctl(action,msg){
   try{await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload:{}})});toast(msg);}
   catch(e){toast('⚠ could not reach the loop')}
@@ -76,8 +111,9 @@ function show(){
     : '🧠 vision judge OFF — running heuristics only. Drop an OpenAI key on the PC to grade the borderline ones.';
   const want=({'bad-review':['bad','review'],'bad':['bad'],'review':['review'],'good':['good'],'all':['good','bad','review']})[filter];
   const list=(D.cast||[]).filter(x=>want.includes(x.verdict));
+  BYSLUG={}; (D.cast||[]).forEach(x=>BYSLUG[x.slug]=x);
   document.getElementById('grid').innerHTML=list.length?list.map(x=>
-    `<div class="jc v-${x.verdict}"><img loading="lazy" src="${x.thumb}"><div class="jn">${x.name}</div><div class="jr"><span class="bdg">${BADGE[x.verdict]} ${x.score}</span> · ${x.reason}</div></div>`).join('')
+    `<div class="jc v-${x.verdict}${NOTES[x.slug]?' hasnote':''}" onclick="openNote('${x.slug}')">${NOTES[x.slug]?'<span class="note-dot">💬</span>':''}<img loading="lazy" src="${x.thumb}"><div class="jn">${x.name}</div><div class="jr"><span class="bdg">${BADGE[x.verdict]} ${x.score}</span> · ${x.reason}</div></div>`).join('')
     :'<div class="dim" style="padding:16px">none in this filter 🎉</div>';
 }
 document.querySelectorAll('#filters .chip').forEach(c=>c.onclick=()=>{
@@ -87,5 +123,5 @@ async function load(){
     const sig=JSON.stringify([d.updated,d.counts,d.phase,d.action,d.cycle,d.champion]);if(sig!==(D&&JSON.stringify([D.updated,D.counts,D.phase,D.action,D.cycle,D.champion]))){D=d;show();}}
   catch(e){document.getElementById('tally').textContent='no judge run yet — run cast_judge.py on the PC'}
 }
-load();setInterval(load,15000);
+loadNotes().then(load);setInterval(load,15000);
 </script></body></html>
