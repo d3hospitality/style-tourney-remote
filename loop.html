@@ -88,7 +88,8 @@ const BADGE={good:'✅',bad:'❌',review:'⚠'};
 const PHASE={cull:'🔧 culling & regenerating',wait:'💤 waiting between cycles',idle:'✓ idle'};
 const DEF_CONS=['Eyes closed → open the eyes','Cutout clipped hair/clothing (floating head)','Scale / proportions off','Wrong likeness — doesn\'t look like them','Wrong or missing era outfit','Too dark / muddy','Cartoonish — needs better references','Redo entirely'];
 const DEF_STAND=['Eyes always open, direct forward gaze','Keep all dark hair & clothing in the cutout','Full head-and-shoulders bust, consistent scale','Era-appropriate outfit for the person'];
-const uniq=(...a)=>[...new Set([].concat(...a).filter(Boolean))];
+const norm=s=>String(s).trim().toLowerCase().replace(/\s+/g,' ');
+function uniq(...a){const seen=new Set(),out=[];for(const v of [].concat(...a)){if(!v)continue;const k=norm(v);if(!seen.has(k)){seen.add(k);out.push(String(v).trim());}}return out;}
 let D=null,filter='bad-review',NOTES={considerations:[],standing:[],sprites:{}},BYSLUG={},noteSlug=null;
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
 function hasNote(slug){const s=NOTES.sprites[slug];return s&&((s.checked&&s.checked.length)||s.text)}
@@ -107,7 +108,9 @@ function renderRules(){
     `<span class="rchip">${r}<span class="x" onclick="delRule(${i})">✕</span></span>`).join('')||'<span class="dim">no standing rules yet</span>';}
 function delRule(i){NOTES.standing.splice(i,1);renderRules();persist('rule removed');}
 document.getElementById('rulesAdd').addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&e.target.value.trim()){NOTES.standing=uniq(NOTES.standing,[e.target.value.trim()]);e.target.value='';renderRules();persist('🔁 standing rule added');}});
+  if(e.key!=='Enter'||!e.target.value.trim())return;
+  const before=NOTES.standing.length;NOTES.standing=uniq(NOTES.standing,[e.target.value.trim()]);e.target.value='';renderRules();
+  if(NOTES.standing.length===before)toast('already a standing rule');else persist('🔁 standing rule added');});
 function openNote(slug){noteSlug=slug;const x=BYSLUG[slug];if(!x)return;
   document.getElementById('noteName').textContent=x.name;
   document.getElementById('noteImg').src=x.thumb;
@@ -120,10 +123,14 @@ function renderCons(checked){
   document.getElementById('consList').innerHTML=NOTES.considerations.map((c,i)=>
     `<label class="cbrow"><input type="checkbox" value="${c.replace(/"/g,'&quot;')}" ${checked.includes(c)?'checked':''}>${c}</label>`).join('');}
 document.getElementById('consAdd').addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&e.target.value.trim()){const v=e.target.value.trim();
-    NOTES.considerations=uniq(NOTES.considerations,[v]);
-    const chk=[...document.querySelectorAll('#consList input:checked')].map(i=>i.value);chk.push(v);
-    renderCons(chk);e.target.value='';persist();}});
+  if(e.key!=='Enter'||!e.target.value.trim())return;
+  const v=e.target.value.trim(),before=NOTES.considerations.length;
+  NOTES.considerations=uniq(NOTES.considerations,[v]);
+  const existing=NOTES.considerations.find(c=>norm(c)===norm(v));
+  const chk=[...document.querySelectorAll('#consList input:checked')].map(i=>i.value);
+  if(existing&&!chk.some(c=>norm(c)===norm(existing)))chk.push(existing);
+  renderCons(chk);e.target.value='';
+  if(NOTES.considerations.length===before)toast('already in the list — checked it');else persist();});
 function closeNote(){document.getElementById('noteModal').style.display='none';noteSlug=null;}
 async function saveNote(){
   const checked=[...document.querySelectorAll('#consList input:checked')].map(i=>i.value);
