@@ -79,7 +79,8 @@ a{color:var(--gold)}
 </div>
 <div class="card" style="border-color:rgba(212,175,55,.55)">
   <div class="lbl" style="color:var(--gold)">⭐ MOTHERLODE — the master training set <span class="dim" id="ldMeta"></span></div>
-  <div class="dim" style="margin:2px 0 6px">every future LoRA trains on these · tap a sprite to mark it, then remove</div>
+  <div class="dim" style="margin:2px 0 6px">tap a sprite to mark → remove · then hit TRAIN to blend what's left into one consistent style</div>
+  <button id="ldTrain" style="width:100%;min-height:48px;font-weight:700;color:#0a0a0c;background:#f0abfc;border-color:#f0abfc;margin-bottom:8px">🔥 TRAIN — blend these sprites into a consistent style</button>
   <div id="ldRemBar" style="display:none;margin-bottom:8px"><button id="ldRemove" style="width:100%;color:var(--red);border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1)">🗑 REMOVE <span id="ldRemCount">0</span> FROM MOTHERLODE</button></div>
   <div class="grid" id="ldGrid"></div>
 </div>
@@ -301,6 +302,18 @@ function renderLode(){
     ||'<div class="dim" style="padding:10px">empty — pick favorites in PREVIEW A STYLE above and tap ⭐ ADD TO MOTHERLODE</div>';
 }
 function togLdMark(f){ldMark.has(f)?ldMark.delete(f):ldMark.add(f);renderLode();}
+let ldArmed=false,ldTimer=null;const LDLBL='🔥 TRAIN — blend these sprites into a consistent style';
+document.getElementById('ldTrain').onclick=async function(){
+  const btn=this,n=(LD&&LD.total)||0;
+  if(n<24){toast('need 24+ sprites in the motherlode to train ('+n+' now)');return;}
+  if(!ldArmed){ldArmed=true;btn.style.background='#fbbf24';
+    btn.textContent='⚠️ TAP AGAIN — trains a LoRA on '+n+' sprites (~40 min, ComfyUI pauses)';
+    ldTimer=setTimeout(()=>{ldArmed=false;btn.style.background='#f0abfc';btn.textContent=LDLBL;},5000);return;}
+  clearTimeout(ldTimer);ldArmed=false;btn.disabled=true;btn.style.background='#f0abfc';btn.textContent='🔥 SENDING…';
+  try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'motherlode_train',payload:{}})});
+    toast(r.ok?'🔥 training the MOTHERLODE style — watch the ④ LOOP status line':'failed — bridge up?');}catch(e){toast('offline?')}
+  setTimeout(()=>{btn.disabled=false;btn.textContent=LDLBL;},4000);
+};
 document.getElementById('ldRemove').onclick=async function(){
   const files=[...ldMark];this.disabled=true;
   try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'motherlode_remove',payload:{files}})});
