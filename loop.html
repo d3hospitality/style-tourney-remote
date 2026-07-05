@@ -20,7 +20,7 @@ h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size
 .bdg{font-weight:700}.v-good .bdg{color:var(--green)}.v-bad .bdg{color:var(--red)}.v-review .bdg{color:var(--amber)}
 button{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(212,175,55,.5);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;min-height:40px}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:29}
-.jc{position:relative;cursor:pointer}
+.jc{position:relative;cursor:pointer;content-visibility:auto;contain-intrinsic-size:0 205px}
 .jc .note-dot{position:absolute;top:5px;left:6px;font-size:14px;filter:drop-shadow(0 0 3px #000);z-index:2}
 .jc .star{position:absolute;top:4px;right:5px;z-index:3;font-size:14px;letter-spacing:-1px;color:var(--gold);cursor:pointer;background:rgba(0,0,0,.4);border-radius:7px;padding:1px 5px;line-height:1.15;filter:drop-shadow(0 0 2px #000)}
 .jc .star.empty{color:var(--faint);opacity:.55}
@@ -97,7 +97,7 @@ const DEF_CONS=['Eyes closed → open the eyes','Cutout clipped hair/clothing (f
 const DEF_STAND=['Eyes always open, direct forward gaze','Keep all dark hair & clothing in the cutout','Full head-and-shoulders bust, consistent scale','Era-appropriate outfit for the person'];
 const norm=s=>String(s).trim().toLowerCase().replace(/\s+/g,' ');
 function uniq(...a){const seen=new Set(),out=[];for(const v of [].concat(...a)){if(!v)continue;const k=norm(v);if(!seen.has(k)){seen.add(k);out.push(String(v).trim());}}return out;}
-let D=null,filter='bad-review',NOTES={considerations:[],standing:[],sprites:{},ratings:{}},BYSLUG={},noteSlug=null;
+let D=null,filter='bad-review',NOTES={considerations:[],standing:[],sprites:{},ratings:{}},BYSLUG={},noteSlug=null,lastGridSig='';
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
 function hasNote(slug){const s=NOTES.sprites[slug];return s&&((s.checked&&s.checked.length)||s.text)}
 async function loadNotes(){
@@ -174,11 +174,17 @@ function show(){
   if(filter==='starred'){list=(D.cast||[]).filter(x=>NOTES.ratings[x.slug]).sort((a,b)=>(NOTES.ratings[b.slug]||0)-(NOTES.ratings[a.slug]||0));}
   else{const want=({'bad-review':['bad','review'],'bad':['bad'],'review':['review'],'good':['good'],'all':['good','bad','review']})[filter];
     list=(D.cast||[]).filter(x=>want.includes(x.verdict));}
+  // only rebuild the (expensive) 73-cell grid when what it shows actually changes —
+  // not on every 15s status tick during a run. Keeps taps from being blocked.
+  const gridSig=JSON.stringify([filter,list.map(x=>[x.slug,x.verdict,x.score]),NOTES.ratings,
+    Object.fromEntries(Object.entries(NOTES.sprites).map(([k,v])=>[k,(v.checked||[]).length+(v.text?1:0)]))]);
+  if(gridSig===lastGridSig)return;
+  lastGridSig=gridSig;
   document.getElementById('grid').innerHTML=list.length?list.map(x=>{
     const s=NOTES.sprites[x.slug],n=hasNote(x.slug),cnt=s&&s.checked?s.checked.length:0;
     const r=NOTES.ratings[x.slug]||0;
     const star=`<span class="star${r?'':' empty'}" onclick="event.stopPropagation();rate('${x.slug}')">${r?'★'.repeat(r):'☆'}</span>`;
-    return `<div class="jc v-${x.verdict}${n?' hasnote':''}${r>=4?' fav':''}" onclick="openNote('${x.slug}')">${star}${n?`<span class="note-dot">💬${cnt||''}</span>`:''}<img loading="lazy" src="${x.thumb}"><div class="jn">${x.name}</div><div class="jr"><span class="bdg">${BADGE[x.verdict]} ${x.score}</span> · ${x.reason}</div></div>`;}).join('')
+    return `<div class="jc v-${x.verdict}${n?' hasnote':''}${r>=4?' fav':''}" onclick="openNote('${x.slug}')">${star}${n?`<span class="note-dot">💬${cnt||''}</span>`:''}<img loading="lazy" decoding="async" src="${x.thumb}"><div class="jn">${x.name}</div><div class="jr"><span class="bdg">${BADGE[x.verdict]} ${x.score}</span> · ${x.reason}</div></div>`;}).join('')
     :'<div class="dim" style="padding:16px">none in this filter 🎉</div>';
 }
 document.querySelectorAll('#filters .chip').forEach(c=>c.onclick=()=>{
