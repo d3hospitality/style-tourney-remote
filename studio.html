@@ -79,7 +79,11 @@ a{color:var(--gold)}
   <div class="grid" id="viewGrid" style="margin-top:8px"></div>
 </div>
 <div class="card" style="border-color:rgba(212,175,55,.55)">
-  <div class="lbl" style="color:var(--gold)">⭐ MOTHERLODE — the master training set <span class="dim" id="ldMeta"></span></div>
+  <div class="lbl" style="color:var(--gold);display:flex;align-items:center;gap:10px">
+    <span id="ldCycle" title="training cycles completed" style="display:none;width:34px;height:34px;min-width:34px;border-radius:50%;border:2px solid var(--gold);background:rgba(212,175,55,.14);color:var(--gold);font-family:Consolas,monospace;font-size:15px;font-weight:700;align-items:center;justify-content:center"></span>
+    ⭐ MOTHERLODE — the master training set <span class="dim" id="ldMeta"></span>
+  </div>
+  <div id="ldGate" class="dim" style="display:none;margin:4px 0 0"></div>
   <div id="ldTrainProg" style="display:none;margin:8px 0 10px"></div>
   <div class="dim" style="margin:2px 0 6px">tap a sprite to mark → remove · then hit TRAIN to blend what's left into one consistent style</div>
   <button id="ldTrain" style="width:100%;min-height:48px;font-weight:700;color:#0a0a0c;background:#f0abfc;border-color:#f0abfc;margin-bottom:8px">🔥 TRAIN — blend these sprites into a consistent style</button>
@@ -297,7 +301,15 @@ async function loadLode(){
 }
 function renderLode(){
   const g=document.getElementById('ldGrid');
-  document.getElementById('ldMeta').textContent='· '+(LD&&LD.total||0)+' sprites · updated '+(LD&&LD.updated||'—')+(LD&&LD.cycle_count?' · 🔁 '+LD.cycle_count+' training cycle'+(LD.cycle_count>1?'s':'')+' done':'');
+  document.getElementById('ldMeta').textContent='· '+(LD&&LD.total||0)+' sprites · updated '+(LD&&LD.updated||'—');
+  const cyc=document.getElementById('ldCycle');
+  if(cyc){const n=(LD&&LD.cycle_count)||0;cyc.style.display=n?'inline-flex':'none';cyc.textContent=n;}
+  const gate=document.getElementById('ldGate');
+  if(gate){const g=LD&&LD.gate;
+    if(g&&g.score!=null){gate.style.display='block';
+      gate.innerHTML=g.pass?`<span style="color:var(--green)">🧠 gpt-4o style gate: ${g.score}/10 — "${g.reason||'this is nice'}" ✓ crystal</span>`
+                           :`<span style="color:var(--amber)">🧠 gpt-4o style gate: ${g.score}/10 — "${g.reason||''}" · keep refining (cycle ${(LD.cycle_count||0)+1} next)</span>`;}
+    else gate.style.display='none';}
   const t=(LD&&LD.train)||null,tp=document.getElementById('ldTrainProg');
   if(tp){
     if(t&&t.mode!=='done'&&t.pct!=null){
