@@ -309,12 +309,26 @@ function renderLode(){
       <button onclick="togLdGroup('${st.replace(/'/g,"\\'")}',true)" style="margin-left:auto;font-size:10.5px;padding:5px 10px;min-height:32px;color:var(--red);border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.08)">MARK ALL</button>
       <button onclick="togLdGroup('${st.replace(/'/g,"\\'")}',false)" style="font-size:10.5px;padding:5px 10px;min-height:32px;color:var(--faint);border-color:var(--border);background:transparent">CLEAR</button>
     </div>
-    <div class="grid">`+arr.map(it=>{const on=ldMark.has(it.file);
-      return `<div class="ent" onclick="togLdMark('${it.file.replace(/'/g,"\\'")}')" style="cursor:pointer;${on?'outline:2px solid var(--red);border-radius:8px;opacity:.7':''}"><img loading="lazy" decoding="async" src="${it.thumb}"><div style="font-size:8.5px">${it.file.replace('.png','').split('__').slice(1).join(' ').replace(/_/g,' ')}</div></div>`;}).join('')+'</div>';
+    `+chunk(arr,LODE_COLS).map((row,ri)=>{
+      const allOn=row.every(it=>ldMark.has(it.file));
+      return `<div style="display:grid;grid-template-columns:30px repeat(${LODE_COLS},1fr);gap:6px;margin-bottom:6px;align-items:stretch">
+        <button onclick="togLdRow('${st.replace(/'/g,"\\'")}',${ri})" title="select/clear this row" style="min-height:0;padding:0;font-size:13px;border-radius:8px;${allOn?'color:#0a0a0c;background:var(--red);border-color:var(--red)':'color:var(--red);border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.07)'}">${allOn?'✓':'▸'}</button>`+
+        row.map(it=>{const on=ldMark.has(it.file);
+          return `<div class="ent" onclick="togLdMark('${it.file.replace(/'/g,"\\'")}')" style="cursor:pointer;${on?'outline:2px solid var(--red);border-radius:8px;opacity:.7':''}"><img loading="lazy" decoding="async" src="${it.thumb}"><div style="font-size:8.5px">${it.file.replace('.png','').split('__').slice(1).join(' ').replace(/_/g,' ')}</div></div>`;}).join('')+
+        '</div>';}).join('');
   }).join('');
 }
+const LODE_COLS=window.innerWidth>900?9:(window.innerWidth>600?6:4);
+function chunk(a,n){const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o;}
 function togLdMark(f){ldMark.has(f)?ldMark.delete(f):ldMark.add(f);renderLode();}
 function togLdGroup(st,on){((LD&&LD.items)||[]).forEach(it=>{if((it.file.split('__')[0]||'other')===st){on?ldMark.add(it.file):ldMark.delete(it.file);}});renderLode();}
+function togLdRow(st,ri){
+  const arr=((LD&&LD.items)||[]).filter(it=>(it.file.split('__')[0]||'other')===st);
+  const row=chunk(arr,LODE_COLS)[ri]||[];
+  const allOn=row.every(it=>ldMark.has(it.file));
+  row.forEach(it=>allOn?ldMark.delete(it.file):ldMark.add(it.file));
+  renderLode();
+}
 let ldArmed=false,ldTimer=null;const LDLBL='🔥 TRAIN — blend these sprites into a consistent style';
 document.getElementById('ldTrain').onclick=async function(){
   const btn=this,n=(LD&&LD.total)||0;
