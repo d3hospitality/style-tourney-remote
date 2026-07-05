@@ -26,7 +26,15 @@ button{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(2
 #noteModal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
 #noteBox{background:var(--card);border:1px solid var(--gold);border-radius:13px;max-width:430px;width:100%;padding:16px}
 #noteBox img{width:110px;height:110px;object-fit:cover;border-radius:9px;float:left;margin:2px 12px 6px 0;background:#000}
-#noteText{width:100%;min-height:96px;background:#0d0d11;border:1px solid var(--border);border-radius:9px;color:var(--text);padding:10px;font-size:15px;font-family:inherit;margin-top:8px;resize:vertical;clear:both}
+#noteText{width:100%;min-height:70px;background:#0d0d11;border:1px solid var(--border);border-radius:9px;color:var(--text);padding:10px;font-size:14px;font-family:inherit;margin-top:8px;resize:vertical;clear:both}
+.cbrow{display:flex;align-items:center;gap:9px;padding:7px 3px;font-size:13px;cursor:pointer;border-bottom:1px solid #1a1a22;user-select:none}
+.cbrow input{width:19px;height:19px;accent-color:var(--gold);flex:none}
+.cbrow.on{color:var(--gold)}
+#consList{max-height:38vh;overflow:auto;margin-top:4px}
+.rchip{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid rgba(212,175,55,.4);border-radius:9px;color:var(--text);font-size:11.5px;background:rgba(212,175,55,.08)}
+.rchip .x{cursor:pointer;color:var(--red);font-weight:700}
+.addin{width:100%;background:#0d0d11;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px;font-size:13px;margin-top:8px;font-family:inherit}
+.addin::placeholder{color:var(--faint)}
 </style></head><body>
 <h1>D3 · ④ PERMALOOP</h1>
 <div class="nav"><a href="index.html" class="st">① BATCH</a><a href="batch.html" class="st">② TOURNEY</a><a href="studio.html" class="st">③ TRAIN + ASSIGN</a><span class="st on">④ LOOP</span></div>
@@ -49,13 +57,21 @@ button{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(2
   <span class="chip" data-f="good">✅ good</span>
   <span class="chip" data-f="all">all</span>
 </div>
+<div class="card" id="rulesCard">
+  <div class="lbl">🔁 STANDING RULES <span class="dim">— Claude applies these to every sprite on future loops</span></div>
+  <div id="rulesList" class="tally" style="margin-bottom:2px"></div>
+  <input id="rulesAdd" class="addin" placeholder="+ add a standing rule, then Enter (e.g. always face slightly 3/4)">
+</div>
 <div class="grid" id="grid"></div>
 <div id="noteModal" onclick="if(event.target.id==='noteModal')closeNote()">
   <div id="noteBox">
-    <div class="lbl">💬 NOTE FOR CLAUDE <span class="dim" id="noteName"></span></div>
+    <div class="lbl">💬 <span id="noteName"></span></div>
     <img id="noteImg" src="">
     <div class="dim" id="noteVerdict" style="margin:6px 0 2px"></div>
-    <textarea id="noteText" placeholder="e.g. wrong outfit — Victorian suit not a toga · doesn't look like him · too dark · redo · perfect, keep it"></textarea>
+    <div class="lbl" style="margin-top:10px">WHAT TO FIX <span class="dim">— tap all that apply</span></div>
+    <div id="consList"></div>
+    <input id="consAdd" class="addin" placeholder="+ add a new consideration, then Enter (becomes a checkbox everywhere)">
+    <textarea id="noteText" placeholder="extra detail for this one (optional)"></textarea>
     <div style="display:flex;gap:8px;margin-top:10px">
       <button onclick="saveNote()" style="flex:1;color:var(--green);border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.12)">💾 SAVE</button>
       <button onclick="closeNote()" style="color:var(--faint);border-color:var(--border);background:transparent">cancel</button>
@@ -70,23 +86,51 @@ const H={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/
 const STORE=SB+'/storage/v1/object/public/style-tourney/';
 const BADGE={good:'✅',bad:'❌',review:'⚠'};
 const PHASE={cull:'🔧 culling & regenerating',wait:'💤 waiting between cycles',idle:'✓ idle'};
-let D=null,filter='bad-review',NOTES={},BYSLUG={},noteSlug=null;
+const DEF_CONS=['Eyes closed → open the eyes','Cutout clipped hair/clothing (floating head)','Scale / proportions off','Wrong likeness — doesn\'t look like them','Wrong or missing era outfit','Too dark / muddy','Cartoonish — needs better references','Redo entirely'];
+const DEF_STAND=['Eyes always open, direct forward gaze','Keep all dark hair & clothing in the cutout','Full head-and-shoulders bust, consistent scale','Era-appropriate outfit for the person'];
+const uniq=(...a)=>[...new Set([].concat(...a).filter(Boolean))];
+let D=null,filter='bad-review',NOTES={considerations:[],standing:[],sprites:{}},BYSLUG={},noteSlug=null;
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
-async function loadNotes(){try{NOTES=(await(await fetch(STORE+'castnotes.json?'+Date.now())).json()).notes||{}}catch(e){NOTES={}}}
+function hasNote(slug){const s=NOTES.sprites[slug];return s&&((s.checked&&s.checked.length)||s.text)}
+async function loadNotes(){
+  let d={};try{d=await(await fetch(STORE+'castnotes.json?'+Date.now())).json()}catch(e){}
+  let sprites=d.sprites;
+  if(!sprites&&d.notes)sprites=Object.fromEntries(Object.entries(d.notes).map(([k,v])=>[k,{checked:[],text:v.text||'',name:v.name,verdict:v.verdict}]));
+  NOTES={considerations:uniq(DEF_CONS,d.considerations),standing:uniq(DEF_STAND,d.standing),sprites:sprites||{}};
+  renderRules();
+}
+async function persist(msg){NOTES.project='sophicon';NOTES.updated=new Date().toISOString();
+  try{await fetch(SB+'/storage/v1/object/style-tourney/castnotes.json',{method:'POST',headers:{...H,'x-upsert':'true'},body:JSON.stringify(NOTES)});if(msg)toast(msg);}
+  catch(e){toast('⚠ save failed')}}
+function renderRules(){
+  document.getElementById('rulesList').innerHTML=NOTES.standing.map((r,i)=>
+    `<span class="rchip">${r}<span class="x" onclick="delRule(${i})">✕</span></span>`).join('')||'<span class="dim">no standing rules yet</span>';}
+function delRule(i){NOTES.standing.splice(i,1);renderRules();persist('rule removed');}
+document.getElementById('rulesAdd').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.value.trim()){NOTES.standing=uniq(NOTES.standing,[e.target.value.trim()]);e.target.value='';renderRules();persist('🔁 standing rule added');}});
 function openNote(slug){noteSlug=slug;const x=BYSLUG[slug];if(!x)return;
   document.getElementById('noteName').textContent=x.name;
   document.getElementById('noteImg').src=x.thumb;
   document.getElementById('noteVerdict').textContent=(BADGE[x.verdict]||'')+' '+x.score+' · '+x.reason;
-  document.getElementById('noteText').value=(NOTES[slug]&&NOTES[slug].text)||'';
-  document.getElementById('noteModal').style.display='flex';
-  setTimeout(()=>document.getElementById('noteText').focus(),50);}
+  const chk=(NOTES.sprites[slug]&&NOTES.sprites[slug].checked)||[];
+  renderCons(chk);
+  document.getElementById('noteText').value=(NOTES.sprites[slug]&&NOTES.sprites[slug].text)||'';
+  document.getElementById('noteModal').style.display='flex';}
+function renderCons(checked){
+  document.getElementById('consList').innerHTML=NOTES.considerations.map((c,i)=>
+    `<label class="cbrow"><input type="checkbox" value="${c.replace(/"/g,'&quot;')}" ${checked.includes(c)?'checked':''}>${c}</label>`).join('');}
+document.getElementById('consAdd').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.value.trim()){const v=e.target.value.trim();
+    NOTES.considerations=uniq(NOTES.considerations,[v]);
+    const chk=[...document.querySelectorAll('#consList input:checked')].map(i=>i.value);chk.push(v);
+    renderCons(chk);e.target.value='';persist();}});
 function closeNote(){document.getElementById('noteModal').style.display='none';noteSlug=null;}
 async function saveNote(){
+  const checked=[...document.querySelectorAll('#consList input:checked')].map(i=>i.value);
   const t=document.getElementById('noteText').value.trim();const x=BYSLUG[noteSlug]||{};
-  if(t)NOTES[noteSlug]={text:t,name:x.name,verdict:x.verdict,at:new Date().toISOString()};else delete NOTES[noteSlug];
-  try{await fetch(SB+'/storage/v1/object/style-tourney/castnotes.json',{method:'POST',headers:{...H,'x-upsert':'true'},body:JSON.stringify({project:'sophicon',updated:new Date().toISOString(),notes:NOTES})});
-    toast(t?'💬 saved — Claude will see it':'note cleared');}
-  catch(e){toast('⚠ save failed')}
+  if(checked.length||t)NOTES.sprites[noteSlug]={checked,text:t,name:x.name,verdict:x.verdict,at:new Date().toISOString()};
+  else delete NOTES.sprites[noteSlug];
+  await persist(checked.length||t?'💬 saved — Claude will see it':'cleared');
   closeNote();show();}
 async function ctl(action,msg){
   try{await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload:{}})});toast(msg);}
@@ -112,8 +156,9 @@ function show(){
   const want=({'bad-review':['bad','review'],'bad':['bad'],'review':['review'],'good':['good'],'all':['good','bad','review']})[filter];
   const list=(D.cast||[]).filter(x=>want.includes(x.verdict));
   BYSLUG={}; (D.cast||[]).forEach(x=>BYSLUG[x.slug]=x);
-  document.getElementById('grid').innerHTML=list.length?list.map(x=>
-    `<div class="jc v-${x.verdict}${NOTES[x.slug]?' hasnote':''}" onclick="openNote('${x.slug}')">${NOTES[x.slug]?'<span class="note-dot">💬</span>':''}<img loading="lazy" src="${x.thumb}"><div class="jn">${x.name}</div><div class="jr"><span class="bdg">${BADGE[x.verdict]} ${x.score}</span> · ${x.reason}</div></div>`).join('')
+  document.getElementById('grid').innerHTML=list.length?list.map(x=>{
+    const s=NOTES.sprites[x.slug],n=hasNote(x.slug),cnt=s&&s.checked?s.checked.length:0;
+    return `<div class="jc v-${x.verdict}${n?' hasnote':''}" onclick="openNote('${x.slug}')">${n?`<span class="note-dot">💬${cnt||''}</span>`:''}<img loading="lazy" src="${x.thumb}"><div class="jn">${x.name}</div><div class="jr"><span class="bdg">${BADGE[x.verdict]} ${x.score}</span> · ${x.reason}</div></div>`;}).join('')
     :'<div class="dim" style="padding:16px">none in this filter 🎉</div>';
 }
 document.querySelectorAll('#filters .chip').forEach(c=>c.onclick=()=>{
