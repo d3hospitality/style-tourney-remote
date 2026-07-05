@@ -47,13 +47,13 @@ button{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(2
   <div class="dim" id="phaseline" style="margin:2px 0 8px;color:var(--cyan)"></div>
   <div class="tally" id="tally">loading…</div>
   <div class="dim" id="visionNote" style="margin-top:7px"></div>
-  <button onclick="if(confirm('Regenerate the flagged & unfinished sprites using your notes + standing rules?\n\n⭐ Starred picks are protected and won\'t be touched.'))ctl('permaloop_rerun','⚙️ applying your considerations — watch it repopulate below')" style="width:100%;margin-top:12px;min-height:48px;font-size:14px;font-weight:700;color:#0a0a0c;background:var(--gold);border-color:var(--gold)">⚙️ APPLY MY CONSIDERATIONS &amp; RE-RUN</button>
+  <button id="applyBtn" onclick="armApply(this)" style="width:100%;margin-top:12px;min-height:48px;font-size:14px;font-weight:700;color:#0a0a0c;background:var(--gold);border-color:var(--gold)">⚙️ APPLY MY CONSIDERATIONS &amp; RE-RUN</button>
   <div class="dim" style="margin-top:5px">regenerates the flagged + unfinished sprites with your notes &amp; standing rules · ⭐ starred picks are protected</div>
   <div class="dim" style="margin:10px 0 4px;font-family:Consolas,monospace;font-size:10px;letter-spacing:1px">LOOP CONTROLS <span style="opacity:.6">(while it's running)</span></div>
   <div style="display:flex;gap:6px;flex-wrap:wrap">
     <button onclick="ctl('permaloop_pause','⏸ paused — finishes the current sprite then holds')" style="color:var(--amber);border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.1)">⏸ PAUSE</button>
     <button onclick="ctl('permaloop_resume','▶ resumed')" style="color:var(--green);border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.12)">▶ RESUME</button>
-    <button onclick="if(confirm('Stop the re-run after the current sprite?'))ctl('permaloop_stop','■ stopping after this sprite')" style="color:var(--red);border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1)">■ STOP</button>
+    <button onclick="ctl('permaloop_stop','■ stopping after the current sprite')" style="color:var(--red);border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1)">■ STOP</button>
   </div>
 </div>
 <div class="tally" id="filters" style="margin-bottom:10px">
@@ -155,6 +155,15 @@ async function saveNote(){
 async function ctl(action,msg){
   try{await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload:{}})});toast(msg);}
   catch(e){toast('⚠ could not reach the loop')}
+}
+// non-blocking two-tap confirm (native confirm() freezes the main thread → INP jank)
+let applyArmed=false,applyTimer=null;
+function armApply(btn){
+  if(applyArmed){clearTimeout(applyTimer);applyArmed=false;
+    btn.textContent='⚙️ APPLY MY CONSIDERATIONS & RE-RUN';btn.style.background='var(--gold)';btn.style.color='#0a0a0c';
+    ctl('permaloop_rerun','⚙️ applying your considerations — watch it repopulate below');return;}
+  applyArmed=true;btn.textContent='⚠️ TAP AGAIN TO CONFIRM · ⭐ picks safe';btn.style.background='var(--amber)';btn.style.color='#0a0a0c';
+  applyTimer=setTimeout(()=>{applyArmed=false;btn.textContent='⚙️ APPLY MY CONSIDERATIONS & RE-RUN';btn.style.background='var(--gold)';},4000);
 }
 function show(){
   if(!D)return;
