@@ -80,7 +80,7 @@ a{color:var(--gold)}
 </div>
 <div class="card" style="border-color:rgba(212,175,55,.55)">
   <div class="lbl" style="color:var(--gold);display:flex;align-items:center;gap:10px">
-    <span id="ldCycle" title="training cycles completed" style="display:none;width:34px;height:34px;min-width:34px;border-radius:50%;border:2px solid var(--gold);background:rgba(212,175,55,.14);color:var(--gold);font-family:Consolas,monospace;font-size:15px;font-weight:700;align-items:center;justify-content:center"></span>
+    <span id="ldCycle" onclick="openCycles()" title="tap: see what each cycle looked like" style="display:none;width:34px;height:34px;min-width:34px;border-radius:50%;border:2px solid var(--gold);background:rgba(212,175,55,.14);color:var(--gold);font-family:Consolas,monospace;font-size:15px;font-weight:700;align-items:center;justify-content:center;cursor:pointer"></span>
     ⭐ MOTHERLODE — the master training set <span class="dim" id="ldMeta"></span>
   </div>
   <div id="ldGate" class="dim" style="display:none;margin:4px 0 0"></div>
@@ -120,6 +120,13 @@ a{color:var(--gold)}
       <button onclick="closeEmotions()" style="min-height:0;padding:6px 12px">✕ close</button>
     </div>
     <div class="grid" id="emoGrid"></div>
+  </div>
+</div>
+<div id="cycModal" onclick="if(event.target===this)closeCycles()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:60;padding:14px;overflow-y:auto">
+  <div style="max-width:720px;margin:0 auto;background:var(--card);border:1px solid var(--gold);border-radius:12px;padding:14px">
+    <div class="lbl" style="color:var(--gold)">🔁 CYCLE STAMPS — how the style evolves <button onclick="closeCycles()" style="float:right;min-height:30px;padding:3px 12px;color:var(--faint);border-color:var(--border);background:transparent">✕</button></div>
+    <div class="dim" style="margin:4px 0 10px">same sprite (Socrates · seed 42) rendered after every training cycle — only the style changes. The collection closes when the gpt-4o gate goes green.</div>
+    <div id="cycList"></div>
   </div>
 </div>
 <div id="toast"></div>
@@ -352,6 +359,29 @@ function renderLode(){
 }
 const LODE_COLS=window.innerWidth>900?9:(window.innerWidth>600?6:4);
 function chunk(a,n){const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o;}
+function openCycles(){
+  const done=(LD&&LD.cycles)||[];
+  const stamps=(LD&&LD.stamps)||{};
+  const tr=(LD&&LD.train)||null,training=tr&&tr.mode!=='done'&&tr.pct!=null;
+  const g=(LD&&LD.gate)||null;
+  let rows=done.map(c=>{
+    const st=c.stamp||stamps[String(c.cycle)];
+    return `<div style="display:flex;gap:12px;align-items:center;border-bottom:1px solid #1c1c24;padding:10px 0">
+      <span style="width:34px;height:34px;min-width:34px;border-radius:50%;border:2px solid var(--gold);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;font-family:Consolas,monospace;font-weight:700">${c.cycle}</span>
+      ${st?`<img src="${st}" style="width:128px;height:128px;object-fit:cover;border-radius:9px;background:#000">`:`<div style="width:128px;height:128px;border-radius:9px;background:#0d0d11;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:10px;text-align:center">stamp<br>rendering…</div>`}
+      <div style="font-size:12px;line-height:1.6"><b>Cycle ${c.cycle}</b> · ${c.at||''}<br><span class="dim">${c.images||'?'} images · ${c.steps||'?'} steps · ${c.lora||''}</span></div>
+    </div>`;}).join('');
+  if(training){
+    rows+=`<div style="display:flex;gap:12px;align-items:center;padding:10px 0;opacity:.75">
+      <span style="width:34px;height:34px;min-width:34px;border-radius:50%;border:2px dashed var(--gold);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;font-family:Consolas,monospace;font-weight:700">${done.length+1}</span>
+      <div style="width:128px;height:128px;border-radius:9px;background:#0d0d11;border:1px dashed var(--gold);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:11px;text-align:center">training…<br>${tr.pct||0}%</div>
+      <div style="font-size:12px"><b>Cycle ${done.length+1}</b> — in the oven<br><span class="dim">stamp renders when it saves</span></div>
+    </div>`;}
+  if(g&&g.score!=null)rows+=`<div style="padding:10px 0;font-size:12px;color:${g.pass?'var(--green)':'var(--amber)'}">🧠 latest gate: ${g.score}/10 — "${g.reason||''}"${g.pass?' ✓ loop closed':' · loop continues'}</div>`;
+  document.getElementById('cycList').innerHTML=rows||'<div class="dim" style="padding:14px">no cycles completed yet — the first stamp lands when cycle 1 finishes training</div>';
+  document.getElementById('cycModal').style.display='block';
+}
+function closeCycles(){document.getElementById('cycModal').style.display='none';}
 function togLdMark(f){ldMark.has(f)?ldMark.delete(f):ldMark.add(f);renderLode();}
 function togLdGroup(st,on){((LD&&LD.items)||[]).forEach(it=>{if((it.file.split('__')[0]||'other')===st){on?ldMark.add(it.file):ldMark.delete(it.file);}});renderLode();}
 function togLdRow(st,ri){
