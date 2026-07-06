@@ -84,6 +84,7 @@ a{color:var(--gold)}
     ⭐ MOTHERLODE — the master training set <span class="dim" id="ldMeta"></span>
   </div>
   <div id="ldGate" class="dim" style="display:none;margin:4px 0 0"></div>
+  <div id="ldLoopProg" style="display:none;margin:8px 0 10px"></div>
   <div id="ldTrainProg" style="display:none;margin:8px 0 10px"></div>
   <div class="dim" style="margin:2px 0 6px">tap a sprite to mark → remove · then hit TRAIN to blend what's left into one consistent style</div>
   <button id="ldTrain" style="width:100%;min-height:48px;font-weight:700;color:#0a0a0c;background:#f0abfc;border-color:#f0abfc;margin-bottom:8px">🔥 TRAIN — blend these sprites into a consistent style</button>
@@ -302,8 +303,8 @@ document.getElementById('viewStyle').onchange=renderView;
 let LD=null,ldMark=new Set(),ldSig='';
 async function loadLode(){
   try{LD=await(await fetch(STORE+'motherlode.json?'+Date.now())).json();}catch(e){return}
-  const t=LD.train||{};
-  const sig=(LD.updated||'')+'|'+(LD.total||0)+'|'+(t.pct||'')+'|'+(t.at||'');
+  const t=LD.train||{},lo=LD.loop||{};
+  const sig=(LD.updated||'')+'|'+(LD.total||0)+'|'+(t.pct||'')+'|'+(t.at||'')+'|'+(lo.pct||'')+'|'+(lo.at||'')+'|'+(LD.cycle_count||'');
   if(sig===ldSig&&!ldMark.size)return;ldSig=sig;renderLode();
 }
 function renderLode(){
@@ -320,6 +321,16 @@ function renderLode(){
       gate.innerHTML=g.pass?`<span style="color:var(--green)">🧠 gpt-4o style gate: ${g.score}/10 — "${g.reason||'this is nice'}" ✓ crystal</span>`
                            :`<span style="color:var(--amber)">🧠 gpt-4o style gate: ${g.score}/10 — "${g.reason||''}" · keep refining (cycle ${(LD.cycle_count||0)+1} next)</span>`;}
     else gate.style.display='none';}
+  const lp=(LD&&LD.loop)||null,lpEl=document.getElementById('ldLoopProg');
+  if(lpEl){
+    if(lp&&lp.pct!=null){lpEl.style.display='block';
+      lpEl.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+        <span style="color:var(--cyan)">🎨 ${lp.stage||'rendering'}</span>
+        <span class="dim">${lp.done||0}/${lp.total||81}</span></div>
+      <div style="height:10px;background:#0d0d11;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+        <div style="height:100%;width:${lp.pct}%;background:linear-gradient(90deg,var(--cyan),#4ade80);transition:width 1s"></div></div>`;
+    }else lpEl.style.display='none';
+  }
   const t=(LD&&LD.train)||null,tp=document.getElementById('ldTrainProg');
   if(tp){
     if(t&&t.mode!=='done'&&t.pct!=null){
