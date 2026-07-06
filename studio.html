@@ -303,7 +303,10 @@ function renderLode(){
   const g=document.getElementById('ldGrid');
   document.getElementById('ldMeta').textContent='· '+(LD&&LD.total||0)+' sprites · updated '+(LD&&LD.updated||'—');
   const cyc=document.getElementById('ldCycle');
-  if(cyc){const n=(LD&&LD.cycle_count)||0;cyc.style.display=n?'inline-flex':'none';cyc.textContent=n;}
+  if(cyc){const n=(LD&&LD.cycle_count)||0;
+    const tr=(LD&&LD.train)||null,training=tr&&tr.mode!=='done'&&tr.pct!=null;
+    if(training){cyc.style.display='inline-flex';cyc.textContent=n+1;cyc.style.borderStyle='dashed';cyc.style.opacity='.75';cyc.title='cycle '+(n+1)+' training now — solidifies when it completes';}
+    else{cyc.style.display=(n||training)?'inline-flex':'none';cyc.textContent=n;cyc.style.borderStyle='solid';cyc.style.opacity='1';cyc.title=n+' training cycles completed';}}
   const gate=document.getElementById('ldGate');
   if(gate){const g=LD&&LD.gate;
     if(g&&g.score!=null){gate.style.display='block';
