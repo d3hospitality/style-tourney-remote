@@ -18,24 +18,33 @@ h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size
 </style></head><body>
 <h1>D3 · ⑥ IDENTITY</h1>
 <div class="nav"><a href="index.html" class="st">① BATCH</a><a href="batch.html" class="st">② TOURNEY</a><a href="studio.html" class="st">③ TRAIN + ASSIGN</a><a href="loop.html" class="st">④ LOOP</a><a href="emotions.html" class="st">⑤ EMOTIONS</a><span class="st on">⑥ IDENTITY</span></div>
-<div class="sub">the 20-reference IP-Adapter identity fix. <b>BEFORE</b> = old single-reference sprite · <b>AFTER</b> = 20 refs → IP-Adapter, filtered through the mannequin. Stronger likeness, on-style.</div>
+<div class="sub">the <b>identity lock</b>. The mannequin gives only expression + pose; hair, clothing, age &amp; face must come from the entity's own references. gpt-4o compares each <b>sprite</b> against the real person's <b>reference</b> and scores the match — so nothing drifts into a generic look.</div>
 <div class="status" id="status">loading…</div>
 <div class="grid" id="grid"></div>
 <script>
 const STORE='https://hwqovzizjoelzfulhxem.supabase.co/storage/v1/object/public/style-tourney/';
 let sig='';
+function bar(label,v){const c=v>=75?'var(--green)':(v>=55?'var(--gold)':'var(--red)');
+  return `<div style="display:flex;align-items:center;gap:6px;font-size:10px;margin:2px 0">
+    <span style="width:52px;color:var(--faint);font-family:Consolas,monospace">${label}</span>
+    <div style="flex:1;height:7px;background:#0d0d11;border-radius:4px;overflow:hidden"><div style="height:100%;width:${v}%;background:${c}"></div></div>
+    <span style="width:24px;text-align:right;color:${c}">${v}</span></div>`;}
 async function load(){
-  let d; try{d=await(await fetch(STORE+'ipadapter.json?'+Date.now())).json()}catch(e){document.getElementById('status').textContent='no IP-Adapter run yet';return}
+  let d; try{d=await(await fetch(STORE+'ipadapter.json?'+Date.now())).json()}catch(e){document.getElementById('status').textContent='no run yet';return}
   const s=JSON.stringify([d.updated,d.count,d.running]); if(s===sig)return; sig=s;
+  const avg=(d.items||[]).length?Math.round((d.items).reduce((a,x)=>a+(x.verdict?.overall||0),0)/d.items.length):0;
   document.getElementById('status').innerHTML = (d.running
-    ? `<span class="run">🎨 ${d.running}</span>` : `✓ ${d.count} entities rebuilt with 20-ref identity`)
-    + ` <span style="color:var(--faint)">· updated ${d.updated||''}</span>`;
-  document.getElementById('grid').innerHTML=(d.items||[]).slice().reverse().map(x=>
-    `<div class="row"><div class="nm">${x.name} <span>· ${x.refs} refs</span></div>
+    ? `<span class="run">🔍 ${d.running}</span>` : `✓ ${d.count} checked · avg match <b style="color:${avg>=75?'var(--green)':'var(--gold)'}">${avg}</b>`)
+    + ` <span style="color:var(--faint)">· ${d.updated||''}</span>`;
+  document.getElementById('grid').innerHTML=(d.items||[]).slice().sort((a,b)=>(a.verdict?.overall||0)-(b.verdict?.overall||0)).map(x=>{
+    const v=x.verdict||{};
+    return `<div class="row"><div class="nm">${x.name} <span>· match ${v.overall||'?'}${v.overall<75?' · ⚠ '+(v.fix||''):''}</span></div>
       <div class="ba">
-        <figure class="before"><img loading="lazy" src="${x.before}"><figcaption>BEFORE · 1 ref</figcaption></figure>
-        <figure class="after"><img loading="lazy" src="${x.after}"><figcaption>AFTER · ${x.refs} refs</figcaption></figure>
-      </div></div>`).join('') || '<div class="sub">rendering…</div>';
+        <figure class="before"><img loading="lazy" src="${x.before}"><figcaption>REFERENCE</figcaption></figure>
+        <figure class="after"><img loading="lazy" src="${x.after}"><figcaption>SPRITE</figcaption></figure>
+      </div>
+      <div style="margin-top:7px">${bar('face',v.face||0)}${bar('hair',v.hair||0)}${bar('age',v.age||0)}${bar('clothing',v.clothing||0)}</div>
+    </div>`;}).join('') || '<div class="sub">verifying…</div>';
 }
-load();setInterval(load,8000);
+load();setInterval(load,7000);
 </script></body></html>
