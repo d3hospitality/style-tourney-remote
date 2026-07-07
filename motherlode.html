@@ -1,0 +1,38 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D3 MOTHERLODE</title><style>
+:root{--bg:#0a0a0c;--card:#16161c;--border:#2a2a35;--gold:#d4af37;--text:#e0ddd5;--faint:#7a7a88;--green:#4ade80;--cyan:#00d9ff}
+*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:14px;max-width:1100px;margin:0 auto;padding-bottom:40px}
+h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size:16px}
+.sub{color:var(--faint);font-size:12px;margin:3px 0 10px;max-width:920px}
+.nav{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}.st{font-family:Consolas,monospace;font-size:10.5px;letter-spacing:1px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;color:var(--faint);text-decoration:none}.st.on{color:var(--gold);border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.1)}
+.status{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:12px}
+.big{font-family:Consolas,monospace;font-size:26px;color:var(--gold)}.big span{font-size:14px;color:var(--faint)}
+.barwrap{height:12px;background:#0d0d11;border-radius:7px;overflow:hidden;margin-top:9px;border:1px solid var(--border)}
+.bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--cyan));transition:width .6s}
+.meta{font-size:12px;color:var(--faint);margin-top:7px}.meta .run{color:var(--cyan)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:7px}
+.grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#000;display:block;border:1px solid var(--border)}
+.gtitle{font-family:Consolas,monospace;font-size:11px;color:var(--faint);letter-spacing:1px;margin:14px 0 7px}
+</style></head><body>
+<h1>D3 · ⑦ MOTHERLODE</h1>
+<div class="nav"><a href="index.html" class="st">① BATCH</a><a href="batch.html" class="st">② TOURNEY</a><a href="studio.html" class="st">③ TRAIN + ASSIGN</a><a href="loop.html" class="st">④ LOOP</a><a href="emotions.html" class="st">⑤ EMOTIONS</a><a href="identity.html" class="st">⑥ IDENTITY</a><span class="st on">⑦ MOTHERLODE</span></div>
+<div class="sub">the <b>fine-tuning corpus</b>. Portrait photos of random humans across many cultures, ages &amp; genders are scraped, face-cropped, and rendered through the sprite recipe — building a big, diverse pool of <b>reference → sprite</b> pairs to train the pattern on. Fills live as the 4080 renders.</div>
+<div class="status" id="status">loading…</div>
+<div class="gtitle">LATEST SPRITES</div>
+<div class="grid" id="grid"></div>
+<script>
+const STORE='https://hwqovzizjoelzfulhxem.supabase.co/storage/v1/object/public/style-tourney/';
+let sig='';
+async function load(){
+  let d; try{d=await(await fetch(STORE+'motherlode.json?'+Date.now())).json()}catch(e){document.getElementById('status').textContent='no corpus run yet';return}
+  const s=JSON.stringify([d.done,d.updated,(d.samples||[]).length]); if(s===sig)return; sig=s;
+  const pct=d.pct||0;
+  document.getElementById('status').innerHTML=
+    `<div class="big">${(d.done||0).toLocaleString()} <span>/ ${(d.target||10000).toLocaleString()} sprites · ${pct}%</span></div>
+     <div class="barwrap"><div class="bar" style="width:${Math.max(1,pct)}%"></div></div>
+     <div class="meta"><span class="run">● building</span> · updated ${d.updated||'—'} · unique diverse faces → black-bg pixel busts</div>`;
+  const g=(d.samples||[]).filter(Boolean).slice().reverse();
+  document.getElementById('grid').innerHTML=g.map(u=>`<img loading="lazy" src="${u}?v=${encodeURIComponent(d.updated||'')}">`).join('')||'<div class="sub">warming up…</div>';
+}
+load();setInterval(load,8000);
+</script></body></html>
