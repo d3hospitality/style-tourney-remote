@@ -17,9 +17,14 @@ h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size
 .barwrap{height:14px;background:#0d0d11;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:0 0 14px}
 .bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--cyan));transition:width 1s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 14px rgba(0,217,255,.4)}
 .wallhead{font-family:Consolas,monospace;font-size:11px;letter-spacing:2px;color:var(--faint);margin:2px 0 8px;display:flex;justify-content:space-between}
-.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:4px}
+.filters{display:flex;gap:5px;flex-wrap:wrap;margin:2px 0 10px}
+.fchip{font-family:Consolas,monospace;font-size:10.5px;letter-spacing:.5px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;color:var(--faint);background:transparent;cursor:pointer;min-height:34px}
+.fchip.on{color:var(--cyan);border-color:rgba(0,217,255,.5);background:rgba(0,217,255,.1)}
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:5px}
 .wall .t{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;border:1px solid #1c1c24}
 .wall img{width:100%;height:100%;object-fit:cover;display:block}
+.wall .cap{position:absolute;top:0;left:0;right:0;font-family:Consolas,monospace;font-size:8.5px;line-height:1.25;color:var(--gold);background:linear-gradient(180deg,rgba(0,0,0,.82),rgba(0,0,0,0));padding:2px 3px 5px;letter-spacing:.2px;text-shadow:0 1px 2px #000}
+.wall .cap b{color:var(--cyan)}
 .wall .t.fresh{animation:pop .9s ease-out}
 .wall .t.fresh::after{content:"";position:absolute;inset:0;border-radius:6px;box-shadow:inset 0 0 0 2px var(--gold);animation:ring 1.6s ease-out forwards}
 @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
@@ -34,17 +39,36 @@ h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size
   <div class="stat"><div class="pct" id="pct">0%</div><div class="up" id="up">warming up…</div></div>
 </div>
 <div class="barwrap"><div class="bar" id="bar" style="width:1%"></div></div>
-<div class="wallhead"><span>THE WALL · newest first</span><span id="wallcount"></span></div>
+<div class="wallhead"><span>THE WALL · newest first · <span style="color:var(--gold)">ml</span>=motherlode <span style="color:var(--cyan)">dn</span>=denoise</span><span id="wallcount"></span></div>
+<div class="filters" id="filters"></div>
 <div class="wall" id="wall"><div class="empty">warming up — first sprites land shortly…</div></div>
 <script>
 const STORE='https://hwqovzizjoelzfulhxem.supabase.co/storage/v1/object/public/style-tourney/';
-let shown=new Set(), curCount=0, sig='';
+const FILTERS=[['all','all'],['ml .2–.3',[0.2,0.3]],['ml .3–.4',[0.3,0.4]],['ml .4–.5',[0.4,0.5]],['ml .5–.6',[0.5,0.601]]];
+let shown=new Set(), curCount=0, sig='', flt='all', LIST=[];
 function animateCount(to){
   const from=curCount, dur=800, t0=performance.now();
   function step(t){const k=Math.min(1,(t-t0)/dur);const v=Math.round(from+(to-from)*(1-Math.pow(1-k,3)));
     document.getElementById('count').innerHTML=v.toLocaleString()+' <small>SPRITES FORGED</small>';
     if(k<1)requestAnimationFrame(step);else curCount=to;}
   requestAnimationFrame(step);
+}
+function drawFilters(){
+  document.getElementById('filters').innerHTML=FILTERS.map((f,i)=>
+    `<button class="fchip${(flt===f[0])?' on':''}" onclick="setFlt('${f[0]}')">${f[0]}</button>`).join('');
+}
+function setFlt(k){flt=k;drawFilters();renderWall();}
+function pass(s){if(flt==='all')return true;const r=FILTERS.find(f=>f[0]===flt)[1];return s.ml!=null&&s.ml>=r[0]&&s.ml<r[1];}
+function renderWall(){
+  const w=document.getElementById('wall');
+  const list=LIST.filter(pass);
+  document.getElementById('wallcount').textContent=list.length+(flt==='all'?'':' / '+LIST.length)+' shown';
+  if(!list.length){w.innerHTML='<div class="empty">no sprites in this weight range yet…</div>';return}
+  w.innerHTML=list.map(s=>{const isNew=!shown.has(s.u);
+    const cap=(s.ml!=null)?`<div class="cap"><b>ml ${s.ml}</b> dn ${s.dn}<br>sp ${s.sp} · #${s.sd}</div>`:'';
+    return `<div class="t${isNew?' fresh':''}"><img loading="lazy" src="${s.u}">${cap}</div>`}).join('');
+  LIST.forEach(s=>shown.add(s.u));
+  if(shown.size>1400)shown=new Set(LIST.map(s=>s.u));
 }
 async function load(){
   let d; try{d=await(await fetch(STORE+'motherlode.json?'+Date.now())).json()}catch(e){return}
@@ -54,13 +78,9 @@ async function load(){
   document.getElementById('pct').textContent=pct+'%';
   document.getElementById('bar').style.width=Math.max(1,pct)+'%';
   document.getElementById('up').textContent='updated '+(d.updated||'—')+' · target '+(d.target||10000).toLocaleString();
-  const list=(d.samples||[]).filter(Boolean).slice().reverse();   // newest first
-  document.getElementById('wallcount').textContent=list.length+' shown';
-  const w=document.getElementById('wall');
-  if(!list.length){return}
-  w.innerHTML=list.map(u=>{const isNew=!shown.has(u);return `<div class="t${isNew?' fresh':''}"><img loading="lazy" src="${u}"></div>`}).join('');
-  list.forEach(u=>shown.add(u));
-  if(shown.size>1200)shown=new Set(list);   // cap memory
+  // normalize: samples may be legacy URL strings or {u,ml,sp,dn,sd} objects
+  LIST=(d.samples||[]).filter(Boolean).map(x=>typeof x==='string'?{u:x}:x).reverse();
+  renderWall();
 }
-load();setInterval(load,6000);
+drawFilters();load();setInterval(load,6000);
 </script></body></html>
