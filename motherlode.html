@@ -20,6 +20,12 @@ h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size
 .filters{display:flex;gap:5px;flex-wrap:wrap;margin:2px 0 10px}
 .fchip{font-family:Consolas,monospace;font-size:10.5px;letter-spacing:.5px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;color:var(--faint);background:transparent;cursor:pointer;min-height:34px}
 .fchip.on{color:var(--cyan);border-color:rgba(0,217,255,.5);background:rgba(0,217,255,.1)}
+.pager{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin:10px 0}
+.pager button{font-family:Consolas,monospace;font-size:12px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;min-height:38px;min-width:44px}
+.pager button:disabled{opacity:.3;cursor:default}
+.pager button:not(:disabled):active{transform:scale(.95)}
+.pager .lbl{font-family:Consolas,monospace;font-size:12px;color:var(--gold);padding:0 6px;min-width:130px;text-align:center}
+.pager .lbl small{color:var(--faint)}
 .wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:5px}
 .wall .t{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:#000;border:1px solid #1c1c24}
 .wall img{width:100%;height:100%;object-fit:cover;display:block}
@@ -39,13 +45,17 @@ h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size
   <div class="stat"><div class="pct" id="pct">0%</div><div class="up" id="up">warming up…</div></div>
 </div>
 <div class="barwrap"><div class="bar" id="bar" style="width:1%"></div></div>
-<div class="wallhead"><span>THE WALL · newest first · <span style="color:var(--gold)">ml</span>=motherlode <span style="color:var(--cyan)">dn</span>=denoise</span><span id="wallcount"></span></div>
+<div class="wallhead"><span>THE WALL · newest first · <span style="color:var(--gold)">ml</span>=motherlode <span style="color:var(--cyan)">dn</span>=denoise · ‹ › arrow keys to flick</span><span id="wallcount"></span></div>
 <div class="filters" id="filters"></div>
+<div class="pager" id="pagerTop"></div>
 <div class="wall" id="wall"><div class="empty">warming up — first sprites land shortly…</div></div>
+<div class="pager" id="pagerBot"></div>
 <script>
 const STORE='https://hwqovzizjoelzfulhxem.supabase.co/storage/v1/object/public/style-tourney/';
 const FILTERS=[['all','all'],['ml .2–.3',[0.2,0.3]],['ml .3–.4',[0.3,0.4]],['ml .4–.5',[0.4,0.5]],['ml .5–.6',[0.5,0.601]]];
-let shown=new Set(), curCount=0, sig='', flt='all', LIST=[];
+const PAGE=150;
+let shown=new Set(), curCount=0, sig='', flt='all', LIST=[], page=0;
+const url=i=>STORE+'ml/'+i+'.jpg';
 function animateCount(to){
   const from=curCount, dur=800, t0=performance.now();
   function step(t){const k=Math.min(1,(t-t0)/dur);const v=Math.round(from+(to-from)*(1-Math.pow(1-k,3)));
@@ -54,33 +64,47 @@ function animateCount(to){
   requestAnimationFrame(step);
 }
 function drawFilters(){
-  document.getElementById('filters').innerHTML=FILTERS.map((f,i)=>
+  document.getElementById('filters').innerHTML=FILTERS.map(f=>
     `<button class="fchip${(flt===f[0])?' on':''}" onclick="setFlt('${f[0]}')">${f[0]}</button>`).join('');
 }
-function setFlt(k){flt=k;drawFilters();renderWall();}
+function setFlt(k){flt=k;page=0;drawFilters();renderWall();}
 function pass(s){if(flt==='all')return true;const r=FILTERS.find(f=>f[0]===flt)[1];return s.ml!=null&&s.ml>=r[0]&&s.ml<r[1];}
+const filtered=()=>LIST.filter(pass);
+function go(p){const pages=Math.max(1,Math.ceil(filtered().length/PAGE));page=Math.min(Math.max(0,p),pages-1);renderWall();window.scrollTo({top:0,behavior:'smooth'});}
+function drawPager(pages,total){
+  const h=`<button onclick="go(0)" ${page===0?'disabled':''}>«</button>
+    <button onclick="go(${page-1})" ${page===0?'disabled':''}>‹ prev</button>
+    <span class="lbl">page ${page+1} / ${pages}<br><small>${total.toLocaleString()} sprites</small></span>
+    <button onclick="go(${page+1})" ${page>=pages-1?'disabled':''}>next ›</button>
+    <button onclick="go(${pages-1})" ${page>=pages-1?'disabled':''}>»</button>`;
+  document.getElementById('pagerTop').innerHTML=h; document.getElementById('pagerBot').innerHTML=h;
+}
 function renderWall(){
+  const F=filtered(), pages=Math.max(1,Math.ceil(F.length/PAGE));
+  if(page>pages-1)page=pages-1;
+  const slice=F.slice(page*PAGE,page*PAGE+PAGE);
+  document.getElementById('wallcount').textContent=F.length.toLocaleString()+(flt==='all'?'':' / '+LIST.length.toLocaleString())+' sprites';
   const w=document.getElementById('wall');
-  const list=LIST.filter(pass);
-  document.getElementById('wallcount').textContent=list.length+(flt==='all'?'':' / '+LIST.length)+' shown';
-  if(!list.length){w.innerHTML='<div class="empty">no sprites in this weight range yet…</div>';return}
-  w.innerHTML=list.map(s=>{const isNew=!shown.has(s.u);
-    const cap=(s.ml!=null)?`<div class="cap"><b>ml ${s.ml}</b> dn ${s.dn}<br>sp ${s.sp} · #${s.sd}</div>`:'';
-    return `<div class="t${isNew?' fresh':''}"><img loading="lazy" src="${s.u}">${cap}</div>`}).join('');
-  LIST.forEach(s=>shown.add(s.u));
-  if(shown.size>1400)shown=new Set(LIST.map(s=>s.u));
+  if(!F.length){w.innerHTML='<div class="empty">no sprites in this weight range yet…</div>';drawPager(1,0);return}
+  w.innerHTML=slice.map(s=>{const isNew=page===0&&!shown.has(s.i);
+    const cap=(s.ml!=null)?`<div class="cap"><b>ml ${s.ml}</b> dn ${s.dn}<br>sp ${s.sp}</div>`:'';
+    return `<div class="t${isNew?' fresh':''}"><img loading="lazy" src="${url(s.i)}" onerror="this.parentElement.style.opacity=.15">${cap}</div>`}).join('');
+  slice.forEach(s=>shown.add(s.i));
+  if(shown.size>3000)shown=new Set(slice.map(s=>s.i));
+  drawPager(pages,F.length);
 }
 async function load(){
   let d; try{d=await(await fetch(STORE+'motherlode.json?'+Date.now())).json()}catch(e){return}
-  const s=JSON.stringify([d.done,d.updated,(d.samples||[]).length]); if(s===sig)return; sig=s;
+  const s=JSON.stringify([d.done,d.updated,(d.gallery||[]).length]); if(s===sig)return; sig=s;
   animateCount(d.done||0);
   const pct=d.pct||0;
   document.getElementById('pct').textContent=pct+'%';
   document.getElementById('bar').style.width=Math.max(1,pct)+'%';
   document.getElementById('up').textContent='updated '+(d.updated||'—')+' · target '+(d.target||10000).toLocaleString();
-  // normalize: samples may be legacy URL strings or {u,ml,sp,dn,sd} objects
-  LIST=(d.samples||[]).filter(Boolean).map(x=>typeof x==='string'?{u:x}:x).reverse();
-  renderWall();
+  LIST=(d.gallery||[]).filter(Boolean);      // already newest-first: {i,ml,sp,dn}
+  if(page===0)renderWall();                   // browsing deep pages? don't yank you back
+  else drawPager(Math.max(1,Math.ceil(filtered().length/PAGE)),filtered().length);
 }
-drawFilters();load();setInterval(load,6000);
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(page-1);if(e.key==='ArrowRight')go(page+1);});
+drawFilters();load();setInterval(load,10000);
 </script></body></html>
