@@ -1,214 +1,182 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>D3 STYLE TOURNEY</title><style>
-:root{--bg:#0a0a0c;--card:#16161c;--border:#2a2a35;--gold:#d4af37;--text:#e0ddd5;--faint:#7a7a88;--cyan:#00d9ff}
-*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:18px;max-width:1100px;margin:0 auto}
-h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:4px;font-size:17px}
-.sub{color:var(--faint);font-size:12px;margin:4px 0 14px}
-.deck{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:20px}
-.dhead{font-family:Consolas,monospace;font-size:11px;letter-spacing:2px;color:var(--gold);cursor:pointer;user-select:none}
-.dbody{display:none;margin-top:10px}
-.deck.open .dbody{display:block}
-.label{font-family:Consolas,monospace;font-size:10px;letter-spacing:2px;color:var(--faint);margin:10px 0 6px}
-.srcs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
-.src{flex-shrink:0;width:76px;cursor:pointer;text-align:center;border:2px solid var(--border);border-radius:8px;overflow:hidden;background:#000}
-.src img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
-.src div{font-family:Consolas,monospace;font-size:8px;color:var(--faint);padding:3px 2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.src.on{border-color:var(--cyan)}.src.on div{color:var(--cyan)}
-.tabs{display:flex;gap:8px;margin-bottom:10px}
-.tab{font-family:Consolas,monospace;font-size:12px;letter-spacing:1px;padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--faint);cursor:pointer}
-.tab.on{color:var(--gold);border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.1)}
-.tab .c{opacity:.7;font-size:10px}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:8px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;cursor:pointer;user-select:none;transition:all .08s}
-.chip:active{transform:scale(.96)}
-.chip.on{border-color:var(--cyan);background:rgba(0,217,255,.12);color:var(--cyan);font-weight:600}
-.chip .dot{width:9px;height:9px;border-radius:50%;background:var(--border)}
-.chip.on .dot{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
-.selrow{font-family:Consolas,monospace;font-size:11px;color:var(--gold);margin:10px 0 4px}
-.round{margin-bottom:28px}
-.rhead{font-family:Consolas,monospace;font-size:12px;letter-spacing:2px;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-.badge{font-size:10px;color:var(--cyan);border:1px solid var(--border);border-radius:99px;padding:3px 10px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
-.cand{background:var(--card);border:2px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer}
-.cand img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
-.cand .cap{padding:6px 8px 8px}
-.num{font-family:Consolas,monospace;font-size:10px;color:var(--faint)}
-.wrow{display:flex;align-items:center;gap:5px;margin-top:3px}
-.wname{font-family:Consolas,monospace;font-size:8.5px;color:var(--text);width:44%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.wtrack{flex:1;height:6px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden}
-.wfill{height:100%;background:linear-gradient(90deg,#8a6d1f,var(--gold))}
-.wpct{font-family:Consolas,monospace;font-size:8.5px;color:var(--gold);width:26px;text-align:right}
-.cand.win{border-color:var(--gold);box-shadow:0 0 12px rgba(212,175,55,.4)}
-.cand.dis{opacity:.55;cursor:default}
-button{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(212,175,55,.5);border-radius:8px;padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer}
-button.cy{color:var(--cyan);border-color:rgba(0,217,255,.5);background:rgba(0,217,255,.08)}
-button:disabled{opacity:.35;cursor:default}
-#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:9}
-a{color:var(--faint)}
-.nav{display:flex;gap:6px;margin:8px 0 12px;flex-wrap:wrap}.st{font-family:Consolas,monospace;font-size:10.5px;letter-spacing:1px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;color:var(--faint);text-decoration:none}.st.on{color:var(--gold);border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.1)}</style></head><body>
-<h1>D3 · ① BATCH</h1>
-<div class="nav"><span class="st on">① BATCH</span><a href="batch.html" class="st">② TOURNEY</a><a href="studio.html" class="st">③ TRAIN + ASSIGN</a><a href="loop.html" class="st">④ LOOP</a><a href="emotions.html" class="st">⑤ EMOTIONS</a><a href="identity.html" class="st">⑥ IDENTITY</a><a href="motherlode.html" class="st">⑦ 10K INITIATIVE</a></div>
-<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:-2px 0 11px;font-family:Consolas,monospace;font-size:9.5px;color:var(--faint)">
-<span style="padding:2px 6px;border:1px solid rgba(212,175,55,.5);border-radius:5px;color:var(--gold);background:rgba(212,175,55,.1)">🎨 source</span>→<span style="padding:2px 6px;border:1px solid rgba(212,175,55,.5);border-radius:5px;color:var(--gold);background:rgba(212,175,55,.1)">🔢 120 batch</span>·<span style="padding:2px 6px;border:1px solid var(--border);border-radius:5px">⭐ pick / forge</span>→<span style="padding:2px 6px;border:1px solid var(--border);border-radius:5px">🏗️ build emotions</span>·<span style="padding:2px 6px;border:1px solid var(--border);border-radius:5px">🔥 train</span>→<span style="padding:2px 6px;border:1px solid var(--border);border-radius:5px">👤 assign</span>
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>D3 SPRITE STUDIO — pipeline</title><style>
+:root{--bg:#0a0a0c;--card:#16161c;--border:#2a2a35;--gold:#d4af37;--text:#e0ddd5;--faint:#7a7a88;--cyan:#00d9ff;--green:#4ade80;--red:#f87171;--purple:#c084fc}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:12px;max-width:760px;margin:0 auto;padding-bottom:60px}
+h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:2px;font-size:15px}
+.sub{color:var(--faint);font-size:12px;margin:3px 0 12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px;margin-bottom:13px}
+.lbl{font-family:Consolas,monospace;font-size:10px;letter-spacing:1.5px;color:var(--gold);margin-bottom:8px}
+.dim{color:var(--faint);font-size:11.5px;line-height:1.5}
+input,select,button{font-family:inherit;font-size:15px;border-radius:9px;border:1px solid var(--border);background:#111115;color:var(--text)}
+input,select{padding:11px 12px}
+button{cursor:pointer;min-height:46px;font-weight:600;padding:0 14px}
+button:disabled{opacity:.45}
+.nav{display:flex;gap:5px;margin:8px 0 12px;flex-wrap:wrap}
+.st{font-family:Consolas,monospace;font-size:10px;letter-spacing:.5px;padding:6px 9px;border:1px solid var(--border);border-radius:7px;color:var(--faint);text-decoration:none}
+.st.on{color:var(--green);border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.1)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint);vertical-align:middle}
+.dot.up{background:var(--green);box-shadow:0 0 6px var(--green)}
+.hero{border-color:rgba(212,175,55,.5);background:linear-gradient(180deg,rgba(212,175,55,.06),transparent)}
+.recipe{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 12px}
+.chip{font-family:Consolas,monospace;font-size:9.5px;color:var(--faint);padding:3px 7px;border:1px solid var(--border);border-radius:5px}
+.toggle{display:flex;align-items:center;gap:10px;padding:11px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer}
+.toggle .box{width:24px;height:24px;min-width:24px;border-radius:6px;border:2px solid var(--faint);display:flex;align-items:center;justify-content:center;font-size:15px}
+.toggle.on .box{background:var(--gold);border-color:var(--gold);color:#0a0a0c}
+.toggle.on{border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.08)}
+.addrow{display:flex;gap:7px;margin-bottom:9px}
+.addrow input{flex:1;min-width:0}
+.gsel{display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.gsel button{border:0;border-radius:0;min-height:0;padding:0 13px;background:transparent;color:var(--faint);font-size:13px}
+.gsel button.on{background:var(--cyan);color:#0a0a0c}
+.newchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.nch{display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border:1px solid rgba(0,217,255,.4);border-radius:20px;background:rgba(0,217,255,.08);color:var(--cyan)}
+.nch b{color:var(--text);font-weight:600}.nch span{cursor:pointer;color:var(--faint);font-weight:700}
+.run{width:100%;min-height:56px;font-size:16px;font-weight:800;color:#0a0a0c;background:var(--gold);border-color:var(--gold);letter-spacing:.5px}
+.run.arm{background:var(--red);border-color:var(--red);color:#fff}
+.phase{margin-top:12px}
+.pbar{height:14px;background:#0d0d11;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:4px 0 2px}
+.pbar>div{height:100%;width:0;transition:width .8s;border-radius:8px}
+.p1>div{background:linear-gradient(90deg,var(--cyan),#7dd3fc)}
+.p2>div{background:linear-gradient(90deg,var(--gold),var(--green))}
+.phead{display:flex;justify-content:space-between;font-size:11px;font-family:Consolas,monospace}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px}
+.ent{background:#0d0d11;border:1px solid var(--border);border-radius:9px;overflow:hidden;text-align:center;cursor:pointer}
+.ent img{width:100%;aspect-ratio:1;object-fit:cover;background:#000;display:block}
+.ent div{font-size:8.5px;color:var(--faint);padding:3px 2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#emoModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:50;padding:12px;overflow-y:auto}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:11px 18px;font-size:13px;display:none;z-index:60;max-width:92%}
+</style></head><body>
+<h1>D3 SPRITE STUDIO</h1>
+<div class="nav">
+  <span class="st on">⚡ PIPELINE</span>
+  <a href="emotions.html" class="st">😐 EMOTIONS</a>
+  <a href="identity.html" class="st">🎭 IDENTITY</a>
+  <a href="motherlode.html" class="st">🏭 CORPUS</a>
 </div>
-<div class="sub">step 1 — cast the wide net. Pick a <b>source philosopher</b>, a LoRA pool & a flavor, then START BIG BATCH → 120 blends. Each tile now renders your philosopher through the <b>real sprite pipeline</b> (sophicon + blend + dummy geometry) — so a tile <i>is</i> the sprite. Narrow & forge on the ② TOURNEY page.</div>
-<div style="margin-bottom:10px"><a href="studio.html" style="text-decoration:none"><button style="width:100%;min-height:46px;color:#4ade80;border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.12)">🎮 SPRITE STUDIO — assign blends & run factory</button></a></div>
-<div style="margin-bottom:10px"><a href="studio.html#entities" style="text-decoration:none"><button style="width:100%;min-height:46px;color:var(--cyan);border-color:rgba(0,217,255,.5);background:rgba(0,217,255,.1)">🔍 CAST STYLE CHECK — which of the 81 pass & why</button></a></div>
-<div style="margin-bottom:14px"><a href="batch.html" style="text-decoration:none"><button style="width:100%;min-height:48px;color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.14)">② GO TO TOURNEY — narrow your 120 <span id="batchCount" style="color:var(--faint);font-weight:400"></span></button></a></div>
-<div id="batchTracker" style="display:none;background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:11px 13px;margin-bottom:16px">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-    <span style="font-family:Consolas,monospace;font-size:11px;letter-spacing:2px;color:var(--gold)">🔢 BIG BATCH</span>
-    <span style="display:flex;gap:8px"><a href="batch.html" style="text-decoration:none"><button style="padding:7px 12px;min-height:0">② TOURNEY</button></a>
-    <button id="stopBatch" style="padding:7px 14px;min-height:0;color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1)">■ STOP</button></span>
+<div class="sub"><span class="dot" id="dot"></span> <span id="statusMsg">connecting…</span></div>
+
+<div class="card hero">
+  <div class="lbl">⚡ ONE-CLICK PIPELINE</div>
+  <div class="dim" style="margin-bottom:9px">Scrapes references → filters each through the <b style="color:var(--text)">mannequin's neutral pose</b> for a locked master sprite → then filters the neutral through the <b style="color:var(--text)">mannequin's 22 emotion poses</b>. Identity + clothing stay the entity's; style is the trained motherlode.</div>
+  <div class="recipe">
+    <span class="chip">🎨 motherlode LoRA</span><span class="chip">🕴 pose from mannequin</span>
+    <span class="chip">🖼 background kept</span><span class="chip">♂♀ man/woman + era clothing</span>
   </div>
-  <div style="height:9px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden;margin-top:9px"><div id="btFill" style="height:100%;background:linear-gradient(90deg,var(--gold),#f0d060);width:0%;transition:width .6s"></div></div>
-  <div id="btMsg" style="font-family:Consolas,monospace;font-size:10.5px;color:var(--cyan);margin-top:5px"></div>
+
+  <div class="toggle" id="castTog" onclick="toggleCast()">
+    <div class="box" id="castBox"></div>
+    <div><div style="font-size:14px;font-weight:600">Include existing cast</div><div class="dim" id="castN">—</div></div>
+  </div>
+
+  <div class="lbl" style="margin-top:6px">ADD NEW INDIVIDUALS</div>
+  <div class="addrow">
+    <input id="newName" placeholder="name — e.g. Hypatia" autocomplete="off">
+    <div class="gsel"><button id="gM" class="on" onclick="setG('man')">♂</button><button id="gW" onclick="setG('woman')">♀</button></div>
+    <button onclick="addNew()" style="color:var(--cyan);border-color:rgba(0,217,255,.4);background:rgba(0,217,255,.1)">+ add</button>
+  </div>
+  <div class="newchips" id="newChips"></div>
+
+  <button class="run" id="runBtn" onclick="runPipe()">▶ RUN PIPELINE</button>
+
+  <div class="phase" id="phaseBox" style="display:none">
+    <div class="phead"><span style="color:var(--cyan)">① NEUTRALS <span id="p1lock"></span></span><span class="dim" id="p1n"></span></div>
+    <div class="pbar p1"><div id="p1fill"></div></div>
+    <div class="phead" style="margin-top:8px"><span style="color:var(--gold)">② EMOTIONS</span><span class="dim" id="p2n"></span></div>
+    <div class="pbar p2"><div id="p2fill"></div></div>
+    <div class="dim" id="pcur" style="margin-top:6px;font-family:Consolas,monospace;color:var(--cyan)"></div>
+  </div>
 </div>
-<div class="deck open" id="deck"><div class="dhead" onclick="document.getElementById('deck').classList.toggle('open')">⚙ BATCH SETUP — source · pool · flavor (tap to collapse)</div>
-<div class="dbody">
-  <div class="label">SOURCE — the face/geometry the styles filter through</div>
-  <div class="tabs" id="srcTabs"></div>
-  <div class="srcs" id="srcs">loading…</div>
-  <div class="label">POOL — tap chips to add/remove from the tournament</div>
-  <div class="tabs" id="tabs"></div>
-  <div style="margin-bottom:8px"><button class="tab" id="tAll" style="padding:6px 12px">✓ all in tab</button> <button class="tab" id="tNone" style="padding:6px 12px">✕ clear tab</button></div>
-  <div class="chips" id="chips"></div>
-  <div class="selrow" id="selrow"></div>
-  <div class="label">FLAVOR — art direction injected into every candidate's prompt</div>
-  <textarea id="flavor" placeholder="e.g. 32-bit SNES JRPG portrait, Final Fantasy VI hero, Metal Gear tactical aesthetic, moody cinematic lighting" style="width:100%;min-height:60px;background:#0d0d11;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px;font-family:inherit"></textarea>
-  <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap"><button class="cy" id="newRound" style="min-height:46px">🎲 NEW RANDOM ROUND FROM THESE</button><button id="restartBtn" style="min-height:46px;color:var(--faint);border-color:var(--border);background:transparent">⟲ RESTART TOURNEY (round 1)</button></div>
-  <div style="margin-top:10px"><button id="bigBatch" style="min-height:48px;width:100%;color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.16)">🔢 START BIG BATCH — 120 blends of this source + pool</button>
-  <div style="font-size:10.5px;color:var(--faint);margin-top:5px">renders 120 distinct blends from the selected source & pool (~35 min); browse, narrow & forge them on the ② TOURNEY page</div></div>
-</div></div>
+
+<div class="card">
+  <div class="lbl">CAST — <span id="entCount">0</span> · tap a face for its emotions</div>
+  <div class="grid" id="entities"></div>
+</div>
+
+<div id="emoModal" onclick="if(event.target===this)closeEmo()">
+  <div style="max-width:760px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span class="lbl" id="emoTitle" style="color:var(--gold)"></span>
+      <button onclick="closeEmo()" style="min-height:0;padding:7px 13px">✕</button>
+    </div>
+    <div class="grid" id="emoGrid"></div>
+  </div>
+</div>
 <div id="toast"></div>
 <script>
 const SB='https://hwqovzizjoelzfulhxem.supabase.co';
 const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cW92eml6am9lbHpmdWxoeGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzU5MTQsImV4cCI6MjA5NDIxMTkxNH0.U-4EkTX5FuvRwncQnejAQUaPLCLRyE8yk1uCQfz8XdU';
 const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
 const STORE=SB+'/storage/v1/object/public/style-tourney/';
-let winners=new Set(),latest=0,lastSig='',source='_dummy-neutral.png',metaDone=false;
-let POOL=[],picked=new Set(),tab='style';
-const TABS=[['style','STYLES'],['trainer','D3 TRAINERS']];
-let META=null,srcMode='phil';  // default to philosophers
-function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3500)}
-async function vote(body){const r=await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify(body)});return r.ok}
-async function loadMeta(){
-  if(metaDone)return;
-  try{META=await(await fetch(STORE+'meta.json?'+Date.now())).json();
-    if(META.phils&&META.phils.length){source='phil:'+(META.phils.includes('marcus_aurelius')?'marcus_aurelius':META.phils[0])}
-    else{srcMode='emotion';source='_dummy-neutral.png'}
-    renderSrcTabs();renderSrcs();
-    POOL=META.pool;
-    picked=new Set(POOL.filter(p=>p.default).map(p=>p.file));  // styles pre-picked
-    renderTabs();renderChips();
-    metaDone=true}catch(e){}
-}
-function renderSrcTabs(){
-  const tabs=[['phil','PHILOSOPHERS '+((META.phils||[]).length)],['emotion','DUMMY EMOTIONS']];
-  document.getElementById('srcTabs').innerHTML=tabs.map(([k,l])=>`<button class="tab ${srcMode===k?'on':''}" data-sm="${k}">${l}</button>`).join('');
-  document.querySelectorAll('[data-sm]').forEach(b=>b.onclick=()=>{srcMode=b.dataset.sm;
-    source=srcMode==='phil'?('phil:'+(META.phils[0])):'_dummy-neutral.png';renderSrcTabs();renderSrcs()});
-}
-function renderSrcs(){
-  let html;
-  if(srcMode==='phil'){
-    html=(META.phils||[]).map(slug=>{
-      const on='phil:'+slug===source;
-      return `<div class="src ${on?'on':''}" data-s="phil:${slug}"><img loading="lazy" src="${STORE}phils/${slug}.jpg"><div>${slug.replace(/_/g,' ')}</div></div>`}).join('');
-  }else{
-    html=(META.sources||[]).map(s=>{
-      const on=s===source;
-      return `<div class="src ${on?'on':''}" data-s="${s}"><img loading="lazy" src="${STORE}sources/${s.replace('.png','.jpg')}"><div>${s.replace('_dummy-','').replace('.png','')}</div></div>`}).join('');
-  }
-  document.getElementById('srcs').innerHTML=html;
-  document.querySelectorAll('.src[data-s]').forEach(el=>el.onclick=()=>{source=el.dataset.s;
-    document.querySelectorAll('.src').forEach(x=>x.classList.toggle('on',x.dataset.s===source))});
-}
-function renderTabs(){
-  document.getElementById('tabs').innerHTML=TABS.map(([k,lbl])=>{
-    const n=POOL.filter(p=>(p.cat||'style')===k).length;
-    const on=picked.size?[...picked].filter(f=>{const p=POOL.find(x=>x.file===f);return p&&(p.cat||'style')===k}).length:0;
-    return `<button class="tab ${tab===k?'on':''}" data-t="${k}">${lbl} <span class="c">${on}/${n}</span></button>`}).join('');
-  document.querySelectorAll('.tab[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderTabs();renderChips()});
+let includeCast=true, gender='man', newEnts=[], CE=null, sig='';
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3400)}
+async function cmd(action,payload){try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload})});return r.ok}catch(e){return false}}
+function toggleCast(){includeCast=!includeCast;document.getElementById('castTog').classList.toggle('on',includeCast);document.getElementById('castBox').textContent=includeCast?'✓':'';}
+function setG(g){gender=g;document.getElementById('gM').classList.toggle('on',g==='man');document.getElementById('gW').classList.toggle('on',g==='woman');}
+function addNew(){
+  const i=document.getElementById('newName');const nm=(i.value||'').trim();if(!nm)return;
+  if(newEnts.some(e=>e.name.toLowerCase()===nm.toLowerCase())){toast('already added');return;}
+  newEnts.push({name:nm,gender});i.value='';renderChips();
 }
 function renderChips(){
-  const items=POOL.filter(p=>(p.cat||'style')===tab);
-  document.getElementById('chips').innerHTML=items.map(p=>
-    `<span class="chip ${picked.has(p.file)?'on':''}" data-f="${p.file}"><span class="dot"></span>${p.where==='library'?'📂 ':''}${p.file.replace('.safetensors','')}</span>`).join('')
-    ||'<span style="color:var(--faint);font-size:12px">none in this tab</span>';
-  document.querySelectorAll('.chip[data-f]').forEach(c=>c.onclick=()=>{
-    const f=c.dataset.f;picked.has(f)?picked.delete(f):picked.add(f);c.classList.toggle('on');renderTabs();updateSel()});
-  updateSel();
+  document.getElementById('newChips').innerHTML=newEnts.map((e,i)=>
+    `<div class="nch">${e.gender==='woman'?'♀':'♂'} <b>${e.name}</b> <span onclick="rmNew(${i})">✕</span></div>`).join('');
 }
-function updateSel(){
-  const byTab=TABS.map(([k,lbl])=>{const n=[...picked].filter(f=>{const p=POOL.find(x=>x.file===f);return p&&(p.cat||'style')===k}).length;return n?`${n} ${lbl.toLowerCase()}`:null}).filter(Boolean);
-  document.getElementById('selrow').textContent=picked.size?('▶ '+picked.size+' selected  ('+byTab.join(' + ')+')'):'▶ nothing selected — tap chips above';
+function rmNew(i){newEnts.splice(i,1);renderChips();}
+document.getElementById('newName').addEventListener('keydown',e=>{if(e.key==='Enter')addNew();});
+let armed=false,armT=null;
+function runPipe(){
+  const b=document.getElementById('runBtn');
+  if(!includeCast&&!newEnts.length){toast('enable the cast or add at least one name');return;}
+  const n=(includeCast?'cast':'')+(newEnts.length?(includeCast?' + ':'')+newEnts.length+' new':'');
+  if(!armed){armed=true;b.classList.add('arm');b.textContent='⚠ TAP AGAIN — run '+n+' (hours on the 4080)';
+    armT=setTimeout(()=>{armed=false;b.classList.remove('arm');b.textContent='▶ RUN PIPELINE';},4500);return;}
+  clearTimeout(armT);armed=false;b.classList.remove('arm');b.textContent='▶ SENDING…';
+  cmd('run_pipeline',{include_cast:includeCast,new:newEnts}).then(ok=>{
+    toast(ok?'⚡ pipeline started — neutrals first, then emotions':'failed — is the bridge up?');
+    if(ok)newEnts=[],renderChips();
+    setTimeout(()=>b.textContent='▶ RUN PIPELINE',2000);
+  });
 }
-// this page is the BATCH launcher — it only builds the setup chips; the round
-// grid + breed/bake now live on the ② TOURNEY page (batch.html). We still read
-// the latest round once, only to pre-fill the flavor box as a convenience.
-async function load(){
-  loadMeta();
-  try{
-    const rounds=await(await fetch(SB+'/rest/v1/st_rounds?select=round,flavor&order=round.desc&limit=1',{headers:H})).json();
-    const fEl=document.getElementById('flavor');
-    if(rounds.length&&rounds[0].flavor&&document.activeElement!==fEl&&!fEl.value)fEl.value=rounds[0].flavor;
+async function loadStatus(){
+  try{const st=await(await fetch(STORE+'studio_status.json?'+Date.now())).json();
+    document.getElementById('dot').className='dot'+(st.up?' up':'');
+    document.getElementById('statusMsg').textContent=st.up?('studio online · '+st.at):'studio offline — start the D3 stack';
+  }catch(e){document.getElementById('statusMsg').textContent='bridge offline'}
+  // two-phase factory progress
+  try{const f=await(await fetch(STORE+'entity_factory.json?'+Date.now())).json();
+    const box=document.getElementById('phaseBox');
+    if(f && (f.running || f.phase==='done')){
+      box.style.display='block';
+      const ph=f.phase;
+      if(ph==='neutrals'){document.getElementById('p1fill').style.width=f.pct+'%';document.getElementById('p1n').textContent=f.done+'/'+f.total;
+        document.getElementById('p1lock').textContent=f.current==='locked'?'✓ locked':'';}
+      else{document.getElementById('p1fill').style.width='100%';document.getElementById('p1lock').textContent='✓ locked';document.getElementById('p1n').textContent='done';}
+      if(ph==='emotions'||ph==='done'){document.getElementById('p2fill').style.width=f.pct+'%';document.getElementById('p2n').textContent=f.done+'/'+f.total;}
+      document.getElementById('pcur').textContent=(ph==='done')?'✅ complete':('▸ '+(f.current||''));
+    }else box.style.display='none';
+  }catch(e){document.getElementById('phaseBox').style.display='none';}
+}
+async function loadData(){
+  try{const D=await(await fetch(STORE+'studio_data.json?'+Date.now())).json();
+    try{CE=await(await fetch(STORE+'castemotions.json?'+Date.now())).json();}catch(e){}
+    const s=JSON.stringify([D.count,D.entities.map(e=>[e.slug,e.thumb])]);
+    document.getElementById('castN').textContent=(D.count||0)+' entities ready';
+    if(s!==sig){sig=s;
+      document.getElementById('entCount').textContent=D.count||0;
+      document.getElementById('entities').innerHTML=(D.entities||[]).map(e=>
+        `<div class="ent" onclick="openEmo('${e.slug}')"><img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div></div>`).join('');
+    }
   }catch(e){}
 }
-// fire the network AFTER the current paint so tapping feels instant (no INP lag)
-function sendLater(body,okMsg){setTimeout(async()=>{
-  try{(await vote(body))?toast(okMsg):toast('send failed — check connection')}catch(e){toast('send failed — offline?')}},0)}
-function flavorVal(){return document.getElementById('flavor').value.trim()}
-document.getElementById('newRound').onclick=()=>{
-  const btn=document.getElementById('newRound');
-  if(picked.size<2){toast('tap at least 2 chips');return}
-  btn.disabled=true;btn.textContent='🎲 SENDING…';
-  setTimeout(()=>{btn.disabled=false;btn.textContent='🎲 NEW RANDOM ROUND FROM THESE'},2500);
-  sendLater({action:'new_round',source,pool:[...picked],flavor:flavorVal()},'new round sent — fresh blends in ~2 min');
-};
-let restartArmed=false;
-document.getElementById('restartBtn').onclick=()=>{
-  const btn=document.getElementById('restartBtn');
-  if(picked.size<2){toast('tap at least 2 chips');return}
-  if(!restartArmed){restartArmed=true;btn.textContent='⚠ TAP AGAIN TO WIPE + RESTART';btn.style.color='#f87171';
-    setTimeout(()=>{restartArmed=false;btn.textContent='⟲ RESTART TOURNEY (round 1)';btn.style.color='var(--faint)'},4000);return}
-  restartArmed=false;btn.textContent='⟲ SENDING…';btn.style.color='var(--faint)';
-  lastSig='';winners.clear();
-  sendLater({action:'restart',source,pool:[...picked],flavor:flavorVal()},'restart sent — fresh round 1 in ~2 min');
-  setTimeout(()=>{btn.textContent='⟲ RESTART TOURNEY (round 1)'},2500);
-};
-document.getElementById('tAll').onclick=()=>{POOL.filter(p=>(p.cat||'style')===tab).forEach(p=>picked.add(p.file));renderTabs();renderChips()};
-document.getElementById('tNone').onclick=()=>{POOL.filter(p=>(p.cat||'style')===tab).forEach(p=>picked.delete(p.file));renderTabs();renderChips()};
-// BIG BATCH tracker — polls status.json, shows bar + STOP while a batch runs
-let batchSeenBusy=false;
-async function pollBatch(){
-  try{
-    const st=await(await fetch(STORE+'status.json?'+Date.now())).json();
-    const tr=document.getElementById('batchTracker');
-    const pct=st.total?Math.round(100*st.done/st.total):0;
-    // count for the always-visible overview button
-    try{const bd=await(await fetch(STORE+'batch.json?'+Date.now())).json();
-      if(bd.items&&bd.items.length)document.getElementById('batchCount').textContent='('+bd.items.length+' blends)';}catch(e){}
-    if(st.busy){tr.style.display='';document.getElementById('btFill').style.width=pct+'%';
-      document.getElementById('btMsg').textContent='⏳ '+st.done+'/'+st.total+' — '+st.msg;}
-    else if(st.done>0){tr.style.display='';document.getElementById('btFill').style.width='100%';
-      document.getElementById('btMsg').textContent='✓ '+st.msg;}
-  }catch(e){}
+function openEmo(slug){
+  const em=(CE&&CE.entities&&CE.entities[slug])||[];
+  document.getElementById('emoTitle').textContent=slug.replace(/_/g,' ')+' · '+em.length+' emotions';
+  document.getElementById('emoGrid').innerHTML=em.length?em.map(x=>`<div class="ent"><img loading="lazy" src="${x.thumb}"><div>${x.emotion}</div></div>`).join(''):'<div class="dim" style="padding:20px">no emotions yet — run the pipeline (they fill in here as they render).</div>';
+  document.getElementById('emoModal').style.display='block';
 }
-let stopArmed=false;
-document.getElementById('stopBatch').onclick=()=>{
-  const b=document.getElementById('stopBatch');
-  if(!stopArmed){stopArmed=true;b.textContent='■ TAP AGAIN TO STOP';setTimeout(()=>{stopArmed=false;b.textContent='■ STOP'},3000);return}
-  stopArmed=false;b.textContent='■ STOPPING…';
-  setTimeout(async()=>{try{await fetch(SB+'/rest/v1/st_votes',{method:'POST',headers:H,body:JSON.stringify({action:'stop'})});toast('stop sent — batch halts after current blend')}catch(e){toast('failed')}setTimeout(()=>b.textContent='■ STOP',2500)},0);
-};
-document.getElementById('bigBatch').onclick=()=>{
-  const b=document.getElementById('bigBatch');
-  if(picked.size<2){toast('tap at least 2 chips in the pool');return}
-  b.disabled=true;b.textContent='🔢 STARTING 120…';
-  setTimeout(()=>{b.disabled=false;b.textContent='🔢 START BIG BATCH — 120 blends of this source + pool'},3000);
-  sendLater({action:'batch',source,pool:[...picked],flavor:flavorVal()},'big batch started — watch the tracker up top');
-};
-pollBatch();setInterval(pollBatch,5000);
-load();setInterval(load,20000);
+function closeEmo(){document.getElementById('emoModal').style.display='none';}
+toggleCast();  // default on
+loadStatus();setInterval(loadStatus,4000);
+loadData();setInterval(loadData,6000);
 </script></body></html>
