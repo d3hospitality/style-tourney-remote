@@ -1,136 +1,108 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>D3 SPRITE STUDIO — remote</title><style>
-:root{--bg:#0a0a0c;--card:#16161c;--border:#2a2a35;--gold:#d4af37;--text:#e0ddd5;--faint:#7a7a88;--cyan:#00d9ff;--green:#4ade80}
-*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:14px;max-width:900px;margin:0 auto;padding-bottom:40px}
-h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:3px;font-size:16px}
-.sub{color:var(--faint);font-size:12px;margin:3px 0 14px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:13px;margin-bottom:14px}
-.lbl{font-family:Consolas,monospace;font-size:10px;letter-spacing:2px;color:var(--gold);margin-bottom:8px}
-.dim{color:var(--faint);font-size:11px}
-select,button{background:#111115;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px}
-select{width:100%}button{cursor:pointer;min-height:44px;font-weight:600}
-button.go{color:var(--gold);border-color:var(--gold);background:rgba(212,175,55,.15)}
-button.fac{color:var(--green);border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.12);width:100%}
-button:disabled{opacity:.4}
-.row{display:flex;gap:8px;margin-bottom:8px}
-.emoList{font-family:Consolas,monospace;font-size:10.5px;color:var(--cyan);line-height:1.7;margin-top:6px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
-.ent{background:#0d0d11;border:1px solid var(--border);border-radius:8px;overflow:hidden;text-align:center;position:relative;cursor:pointer}
-.ent img{width:100%;aspect-ratio:1;object-fit:cover;background:#000}
-.ent div{font-size:8.5px;color:var(--faint);padding:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.ent.sel{border-color:#f87171;box-shadow:0 0 0 2px #f87171}
-.ent .pk{position:absolute;top:3px;right:3px;width:17px;height:17px;border:1px solid var(--faint);border-radius:4px;background:rgba(0,0,0,.45);z-index:2;cursor:pointer}
-.ent .pk.on{background:#f87171;border-color:#f87171}
-.ent .pk.on::after{content:'✓';color:#fff;font-size:11px;line-height:17px;text-align:center;display:block}
-#emoModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:50;padding:14px;overflow-y:auto}
-.ent .m{position:absolute;top:2px;left:3px;font-size:11px;z-index:1;text-shadow:0 0 3px #000}
-.ent .qc{display:block;font-size:7.5px;color:var(--faint);padding:0 2px 2px;font-family:Consolas,monospace}
-.ent.gold{border-color:rgba(212,175,55,.5)}.ent.strag{border-color:rgba(248,113,113,.4)}
-.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint)}
-.dot.up{background:var(--green);box-shadow:0 0 6px var(--green)}
-#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:10px 18px;font-size:13px;display:none;z-index:9}
-a{color:var(--gold)}
-.nav{display:flex;gap:6px;margin:8px 0 10px;flex-wrap:wrap}
-.st{font-family:Consolas,monospace;font-size:10.5px;letter-spacing:1px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;color:var(--faint);text-decoration:none}
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>D3 SPRITE STUDIO — pipeline</title><style>
+:root{--bg:#0a0a0c;--card:#16161c;--border:#2a2a35;--gold:#d4af37;--text:#e0ddd5;--faint:#7a7a88;--cyan:#00d9ff;--green:#4ade80;--red:#f87171;--purple:#c084fc}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:12px;max-width:760px;margin:0 auto;padding-bottom:60px}
+h1{font-family:Consolas,monospace;color:var(--gold);letter-spacing:2px;font-size:15px}
+.sub{color:var(--faint);font-size:12px;margin:3px 0 12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px;margin-bottom:13px}
+.lbl{font-family:Consolas,monospace;font-size:10px;letter-spacing:1.5px;color:var(--gold);margin-bottom:8px}
+.dim{color:var(--faint);font-size:11.5px;line-height:1.5}
+input,select,button{font-family:inherit;font-size:15px;border-radius:9px;border:1px solid var(--border);background:#111115;color:var(--text)}
+input,select{padding:11px 12px}
+button{cursor:pointer;min-height:46px;font-weight:600;padding:0 14px}
+button:disabled{opacity:.45}
+.nav{display:flex;gap:5px;margin:8px 0 12px;flex-wrap:wrap}
+.st{font-family:Consolas,monospace;font-size:10px;letter-spacing:.5px;padding:6px 9px;border:1px solid var(--border);border-radius:7px;color:var(--faint);text-decoration:none}
 .st.on{color:var(--green);border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.1)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint);vertical-align:middle}
+.dot.up{background:var(--green);box-shadow:0 0 6px var(--green)}
+.hero{border-color:rgba(212,175,55,.5);background:linear-gradient(180deg,rgba(212,175,55,.06),transparent)}
+.recipe{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 12px}
+.chip{font-family:Consolas,monospace;font-size:9.5px;color:var(--faint);padding:3px 7px;border:1px solid var(--border);border-radius:5px}
+.toggle{display:flex;align-items:center;gap:10px;padding:11px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer}
+.toggle .box{width:24px;height:24px;min-width:24px;border-radius:6px;border:2px solid var(--faint);display:flex;align-items:center;justify-content:center;font-size:15px}
+.toggle.on .box{background:var(--gold);border-color:var(--gold);color:#0a0a0c}
+.toggle.on{border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.08)}
+.addrow{display:flex;gap:7px;margin-bottom:9px}
+.addrow input{flex:1;min-width:0}
+.gsel{display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.gsel button{border:0;border-radius:0;min-height:0;padding:0 13px;background:transparent;color:var(--faint);font-size:13px}
+.gsel button.on{background:var(--cyan);color:#0a0a0c}
+.newchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.nch{display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border:1px solid rgba(0,217,255,.4);border-radius:20px;background:rgba(0,217,255,.08);color:var(--cyan)}
+.nch b{color:var(--text);font-weight:600}.nch span{cursor:pointer;color:var(--faint);font-weight:700}
+.run{width:100%;min-height:56px;font-size:16px;font-weight:800;color:#0a0a0c;background:var(--gold);border-color:var(--gold);letter-spacing:.5px}
+.run.arm{background:var(--red);border-color:var(--red);color:#fff}
+.phase{margin-top:12px}
+.pbar{height:14px;background:#0d0d11;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:4px 0 2px}
+.pbar>div{height:100%;width:0;transition:width .8s;border-radius:8px}
+.p1>div{background:linear-gradient(90deg,var(--cyan),#7dd3fc)}
+.p2>div{background:linear-gradient(90deg,var(--gold),var(--green))}
+.phead{display:flex;justify-content:space-between;font-size:11px;font-family:Consolas,monospace}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px}
+.ent{background:#0d0d11;border:1px solid var(--border);border-radius:9px;overflow:hidden;text-align:center;cursor:pointer}
+.ent img{width:100%;aspect-ratio:1;object-fit:cover;background:#000;display:block}
+.ent div{font-size:8.5px;color:var(--faint);padding:3px 2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#emoModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:50;padding:12px;overflow-y:auto}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--gold);border-radius:9px;padding:11px 18px;font-size:13px;display:none;z-index:60;max-width:92%}
 </style></head><body>
-<h1>D3 SPRITE STUDIO — remote</h1>
+<h1>D3 SPRITE STUDIO</h1>
 <div class="nav">
   <a href="index.html" class="st">① BATCH</a>
   <a href="batch.html" class="st">② TOURNEY</a>
-  <span class="st on">③ TRAIN + ASSIGN</span>
+  <span class="st on">③ PIPELINE</span>
   <a href="loop.html" class="st">④ LOOP</a>
   <a href="emotions.html" class="st">⑤ EMOTIONS</a>
   <a href="identity.html" class="st">⑥ IDENTITY</a>
-  <a href="motherlode.html" class="st">⑦ 10K INITIATIVE</a>
-</div>
-<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:2px 0 10px;font-family:Consolas,monospace;font-size:9.5px;color:var(--faint)">
-<span style="padding:2px 6px;border:1px solid var(--border);border-radius:5px">🎨 source</span>→<span style="padding:2px 6px;border:1px solid var(--border);border-radius:5px">🔢 120 batch</span>·<span style="padding:2px 6px;border:1px solid var(--border);border-radius:5px">⭐ pick / forge</span>→<span style="padding:2px 6px;border:1px solid var(--border);border-radius:5px">🏗️ build emotions</span>·<span style="padding:2px 6px;border:1px solid rgba(212,175,55,.5);border-radius:5px;color:var(--gold);background:rgba(212,175,55,.1)">🔥 train</span>→<span style="padding:2px 6px;border:1px solid rgba(212,175,55,.5);border-radius:5px;color:var(--gold);background:rgba(212,175,55,.1)">👤 assign</span>
+  <a href="motherlode.html" class="st">⑦ 10K</a>
 </div>
 <div class="sub"><span class="dot" id="dot"></span> <span id="statusMsg">connecting…</span></div>
-<div class="card" id="jobCard" style="display:none;border-color:var(--green)">
-  <div class="lbl" style="color:var(--green)">⚙ RUNNING <span id="jobMode"></span></div>
-  <div style="height:12px;background:#0d0d11;border:1px solid var(--border);border-radius:99px;overflow:hidden"><div id="jobFill" style="height:100%;background:linear-gradient(90deg,var(--green),#86efac,var(--green));background-size:200% 100%;width:0%;transition:width .8s;animation:jobshimmer 1.4s linear infinite"></div></div>
-  <style>@keyframes jobshimmer{to{background-position:-200% 0}}</style>
-  <div id="jobMsg" style="font-family:Consolas,monospace;font-size:10.5px;color:var(--cyan);margin-top:6px"></div>
-</div>
 
-<div class="card">
-  <div class="lbl">STYLE BLEND — project-wide</div>
-  <div class="dim" style="margin-bottom:7px">Every entity's sprites render in this blend (dummy emotion states lock the geometry).</div>
-  <select id="projBlend"><option value="">loading…</option></select>
-  <div class="lbl" style="margin-top:12px">PER-EMOTION OVERRIDE</div>
-  <div class="row"><select id="emoPick" style="flex:1"></select><select id="emoBlend" style="flex:1"></select></div>
-  <div class="emoList" id="emoList"></div>
-</div>
-
-<div class="card">
-  <div class="lbl">GENERATE</div>
-  <button class="fac" id="factory">🏭 FACTORY — render all entities in the assigned blend</button>
-  <div class="dim" style="margin-top:6px">Geometry-locked to dummy states · outputs archive into the blend's folder · runs on the 4080 (~hours for full cast)</div>
-</div>
-
-<div class="card">
-  <div class="lbl">👁 PREVIEW A STYLE — eyeball the rendered cast before you train</div>
-  <div class="dim" style="margin-bottom:7px">Every philosopher rendered in the picked style (identity from their saved sprite · pose from the dummy · look from the blend). Updates live as the build runs.</div>
-  <select id="viewStyle"><option value="">— pick a built style —</option></select>
-  <div id="viewMeta" class="dim" style="margin-top:6px"></div>
-  <div id="lodeBar" style="display:none;gap:8px;align-items:center;margin-top:8px;position:sticky;top:6px;z-index:5">
-    <button id="lodeSend" style="flex:1;min-height:44px;font-weight:700;color:#0a0a0c;background:var(--gold);border-color:var(--gold)">⭐ ADD <span id="lodeCount">0</span> TO MOTHERLODE — master training set</button>
+<div class="card hero">
+  <div class="lbl">⚡ ONE-CLICK PIPELINE</div>
+  <div class="dim" style="margin-bottom:9px">Scrapes references → filters each through the <b style="color:var(--text)">mannequin's neutral pose</b> for a locked master sprite → then filters the neutral through the <b style="color:var(--text)">mannequin's 22 emotion poses</b>. Identity + clothing stay the entity's; style is the trained motherlode.</div>
+  <div class="recipe">
+    <span class="chip">🎨 motherlode LoRA</span><span class="chip">🕴 pose from mannequin</span>
+    <span class="chip">🖼 background kept</span><span class="chip">♂♀ man/woman + era clothing</span>
   </div>
-  <div class="grid" id="viewGrid" style="margin-top:8px"></div>
-</div>
-<div class="card" style="border-color:rgba(212,175,55,.55)">
-  <div class="lbl" style="color:var(--gold);display:flex;align-items:center;gap:10px">
-    <span id="ldCycle" onclick="openCycles()" title="tap: see what each cycle looked like" style="display:none;width:34px;height:34px;min-width:34px;border-radius:50%;border:2px solid var(--gold);background:rgba(212,175,55,.14);color:var(--gold);font-family:Consolas,monospace;font-size:15px;font-weight:700;align-items:center;justify-content:center;cursor:pointer"></span>
-    ⭐ MOTHERLODE — the master training set <span class="dim" id="ldMeta"></span>
+
+  <div class="toggle" id="castTog" onclick="toggleCast()">
+    <div class="box" id="castBox"></div>
+    <div><div style="font-size:14px;font-weight:600">Include existing cast</div><div class="dim" id="castN">—</div></div>
   </div>
-  <div id="ldGate" class="dim" style="display:none;margin:4px 0 0"></div>
-  <div id="ldCorpus" style="display:none;margin:8px 0 10px"></div>
-  <div id="ldLoopProg" style="display:none;margin:8px 0 10px"></div>
-  <div id="ldTrainProg" style="display:none;margin:8px 0 10px"></div>
-  <div class="dim" style="margin:2px 0 6px">tap a sprite to mark → remove · then hit TRAIN to blend what's left into one consistent style</div>
-  <button id="ldTrain" style="width:100%;min-height:48px;font-weight:700;color:#0a0a0c;background:#f0abfc;border-color:#f0abfc;margin-bottom:8px">🔥 TRAIN — blend these sprites into a consistent style</button>
-  <div id="ldRemBar" style="display:none;margin-bottom:8px;position:sticky;top:6px;z-index:6"><button id="ldRemove" style="width:100%;min-height:44px;color:var(--red);border-color:rgba(248,113,113,.6);background:rgba(248,113,113,.15);font-weight:700">🗑 REMOVE <span id="ldRemCount">0</span> FROM MOTHERLODE</button></div>
-  <div id="ldGrid"></div>
-</div>
 
-<div class="card">
-  <div class="lbl" style="color:#f0abfc">🔥 TRAIN A STYLE LoRA</div>
-  <div class="dim" style="margin-bottom:7px">Distill a style's built library (its cast folder) into ONE trained LoRA. Trains when ComfyUI is closed.</div>
-  <select id="trainBlend"><option value="">— pick a built style folder —</option></select>
-  <button id="trainBtn" disabled style="width:100%;margin-top:8px;color:#f0abfc;border-color:rgba(240,171,252,.5);background:rgba(240,171,252,.12)">🔥 TRAIN THIS STYLE → LoRA</button>
-</div>
-
-<div class="card">
-  <div class="lbl">🔍 STYLE CHECK — which neutrals pass & why</div>
-  <div class="dim" style="margin-bottom:6px">Quality tracks the reference SOURCE. <b style="color:var(--gold)">🥇 golden</b> = rebuilt from your finished pipeline portraits (cleanest, most consistent). <b style="color:var(--cyan)">🧬 blend</b> = eye-aligned average of the top-20 scraped refs (good when the refs agree). <b style="color:#f87171">🔥 straggler</b> = expanded-cast with only poor scraped refs, pushed to high denoise (weakest). The <b>d</b> chip = denoise, <b>s</b> = portrait saturation (low = a marble/statue source). Tap the duds below → 🗑 DELETE to redo them.</div>
-  <div id="qcTally" class="emoList"></div>
-</div>
-
-<div class="card">
-  <div class="lbl">CAST — <span id="entCount">0</span> entities · tap a face to see its emotions · ✓ to select</div>
-  <div id="delBar" style="display:none;gap:8px;align-items:center;margin-bottom:9px;flex-wrap:wrap">
-    <button id="delBtn" style="color:#f87171;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.12)">🗑 DELETE 0</button>
-    <button id="delClear" style="color:var(--faint);border-color:var(--border);background:transparent">clear</button>
-    <span class="dim">buries their sprites so you can redo with a new reference</span>
+  <div class="lbl" style="margin-top:6px">ADD NEW INDIVIDUALS</div>
+  <div class="addrow">
+    <input id="newName" placeholder="name — e.g. Hypatia" autocomplete="off">
+    <div class="gsel"><button id="gM" class="on" onclick="setG('man')">♂</button><button id="gW" onclick="setG('woman')">♀</button></div>
+    <button onclick="addNew()" style="color:var(--cyan);border-color:rgba(0,217,255,.4);background:rgba(0,217,255,.1)">+ add</button>
   </div>
+  <div class="newchips" id="newChips"></div>
+
+  <button class="run" id="runBtn" onclick="runPipe()">▶ RUN PIPELINE</button>
+
+  <div class="phase" id="phaseBox" style="display:none">
+    <div class="phead"><span style="color:var(--cyan)">① NEUTRALS <span id="p1lock"></span></span><span class="dim" id="p1n"></span></div>
+    <div class="pbar p1"><div id="p1fill"></div></div>
+    <div class="phead" style="margin-top:8px"><span style="color:var(--gold)">② EMOTIONS</span><span class="dim" id="p2n"></span></div>
+    <div class="pbar p2"><div id="p2fill"></div></div>
+    <div class="dim" id="pcur" style="margin-top:6px;font-family:Consolas,monospace;color:var(--cyan)"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="lbl">CAST — <span id="entCount">0</span> · tap a face for its emotions</div>
   <div class="grid" id="entities"></div>
 </div>
-<div id="emoModal" onclick="if(event.target===this)closeEmotions()">
-  <div style="max-width:900px;margin:0 auto">
+
+<div id="emoModal" onclick="if(event.target===this)closeEmo()">
+  <div style="max-width:760px;margin:0 auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <span class="lbl" id="emoTitle" style="color:var(--gold)"></span>
-      <button onclick="closeEmotions()" style="min-height:0;padding:6px 12px">✕ close</button>
+      <button onclick="closeEmo()" style="min-height:0;padding:7px 13px">✕</button>
     </div>
     <div class="grid" id="emoGrid"></div>
-  </div>
-</div>
-<div id="cycModal" onclick="if(event.target===this)closeCycles()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:60;padding:14px;overflow-y:auto">
-  <div style="max-width:720px;margin:0 auto;background:var(--card);border:1px solid var(--gold);border-radius:12px;padding:14px">
-    <div class="lbl" style="color:var(--gold)">🔁 CYCLE STAMPS — how the style evolves <button onclick="closeCycles()" style="float:right;min-height:30px;padding:3px 12px;color:var(--faint);border-color:var(--border);background:transparent">✕</button></div>
-    <div class="dim" style="margin:4px 0 10px">same sprite (Socrates · seed 42) rendered after every training cycle — only the style changes. The collection closes when the gpt-4o gate goes green.</div>
-    <div id="cycList"></div>
   </div>
 </div>
 <div id="toast"></div>
@@ -139,302 +111,75 @@ const SB='https://hwqovzizjoelzfulhxem.supabase.co';
 const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3cW92eml6am9lbHpmdWxoeGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MzU5MTQsImV4cCI6MjA5NDIxMTkxNH0.U-4EkTX5FuvRwncQnejAQUaPLCLRyE8yk1uCQfz8XdU';
 const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
 const STORE=SB+'/storage/v1/object/public/style-tourney/';
-let D=null,sig='';
-let selEnt=new Set(),delArmed=false;
-let QC={},QCC=null,CE=null;
-function openEmotions(slug){
-  const em=(CE&&CE.entities&&CE.entities[slug])||[];
-  document.getElementById('emoTitle').textContent=slug.replace(/_/g,' ')+' · '+em.length+' emotions';
-  document.getElementById('emoGrid').innerHTML=em.length?em.map(x=>`<div class="ent"><img loading="lazy" src="${x.thumb}"><div>${x.emotion}</div></div>`).join(''):'<div class="dim" style="padding:22px">no emotions published yet — run FACTORY (they appear here as they render).</div>';
-  document.getElementById('emoModal').style.display='block';
+let includeCast=true, gender='man', newEnts=[], CE=null, sig='';
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3400)}
+async function cmd(action,payload){try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload})});return r.ok}catch(e){return false}}
+function toggleCast(){includeCast=!includeCast;document.getElementById('castTog').classList.toggle('on',includeCast);document.getElementById('castBox').textContent=includeCast?'✓':'';}
+function setG(g){gender=g;document.getElementById('gM').classList.toggle('on',g==='man');document.getElementById('gW').classList.toggle('on',g==='woman');}
+function addNew(){
+  const i=document.getElementById('newName');const nm=(i.value||'').trim();if(!nm)return;
+  if(newEnts.some(e=>e.name.toLowerCase()===nm.toLowerCase())){toast('already added');return;}
+  newEnts.push({name:nm,gender});i.value='';renderChips();
 }
-function closeEmotions(){document.getElementById('emoModal').style.display='none';}
-function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
-async function cmd(action,payload){
-  try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action,payload})});return r.ok}catch(e){return false}
+function renderChips(){
+  document.getElementById('newChips').innerHTML=newEnts.map((e,i)=>
+    `<div class="nch">${e.gender==='woman'?'♀':'♂'} <b>${e.name}</b> <span onclick="rmNew(${i})">✕</span></div>`).join('');
 }
-async function load(){
-  try{
-    const st=await(await fetch(STORE+'studio_status.json?'+Date.now())).json();
+function rmNew(i){newEnts.splice(i,1);renderChips();}
+document.getElementById('newName').addEventListener('keydown',e=>{if(e.key==='Enter')addNew();});
+let armed=false,armT=null;
+function runPipe(){
+  const b=document.getElementById('runBtn');
+  if(!includeCast&&!newEnts.length){toast('enable the cast or add at least one name');return;}
+  const n=(includeCast?'cast':'')+(newEnts.length?(includeCast?' + ':'')+newEnts.length+' new':'');
+  if(!armed){armed=true;b.classList.add('arm');b.textContent='⚠ TAP AGAIN — run '+n+' (hours on the 4080)';
+    armT=setTimeout(()=>{armed=false;b.classList.remove('arm');b.textContent='▶ RUN PIPELINE';},4500);return;}
+  clearTimeout(armT);armed=false;b.classList.remove('arm');b.textContent='▶ SENDING…';
+  cmd('run_pipeline',{include_cast:includeCast,new:newEnts}).then(ok=>{
+    toast(ok?'⚡ pipeline started — neutrals first, then emotions':'failed — is the bridge up?');
+    if(ok)newEnts=[],renderChips();
+    setTimeout(()=>b.textContent='▶ RUN PIPELINE',2000);
+  });
+}
+async function loadStatus(){
+  try{const st=await(await fetch(STORE+'studio_status.json?'+Date.now())).json();
     document.getElementById('dot').className='dot'+(st.up?' up':'');
     document.getElementById('statusMsg').textContent=st.up?('studio online · '+st.at):'studio offline — start the D3 stack';
-    const job=st.job||{};const jc=document.getElementById('jobCard');
-    if(job.active){
-      jc.style.display='';
-      const done=job.done_units||0,total=job.total_units||0;
-      const pct=(job.pct!=null)?job.pct:(total?Math.round(100*done/total):0);
-      document.getElementById('jobFill').style.width=pct+'%';
-      document.getElementById('jobMode').textContent=job.mode?('· '+job.mode):'';
-      let eta='';                                    // smoothed client-side rate → ETA
-      if(total&&done){const now=Date.now();
-        if(window._ld!=null&&done>window._ld){const dt=(now-window._lt)/1000,dd=done-window._ld;
-          if(dt>0){const r=dd/dt;window._r=window._r?window._r*0.7+r*0.3:r;}}
-        if(window._ld==null||done>window._ld){window._ld=done;window._lt=now;}
-        if(window._r>0){const rem=(total-done)/window._r,h=Math.floor(rem/3600),m=Math.round((rem%3600)/60);
-          eta=h>0?`~${h}h ${m}m left`:`~${m}m left`;}}
-      document.getElementById('jobMsg').textContent=`${job.stage||'working'} · ${done}/${total} · ${pct}%${eta?' · '+eta:''}`;
-    }else{jc.style.display='none';window._ld=null;window._r=0;}
   }catch(e){document.getElementById('statusMsg').textContent='bridge offline'}
-  try{
-    D=await(await fetch(STORE+'studio_data.json?'+Date.now())).json();
-    try{const q=await(await fetch(STORE+'castqc.json?'+Date.now())).json();
-      QC={};q.cast.forEach(r=>QC[r.slug]=r);QCC=q.counts;}catch(e){}
+  // two-phase factory progress
+  try{const f=await(await fetch(STORE+'entity_factory.json?'+Date.now())).json();
+    const box=document.getElementById('phaseBox');
+    if(f && (f.running || f.phase==='done')){
+      box.style.display='block';
+      const ph=f.phase;
+      if(ph==='neutrals'){document.getElementById('p1fill').style.width=f.pct+'%';document.getElementById('p1n').textContent=f.done+'/'+f.total;
+        document.getElementById('p1lock').textContent=f.current==='locked'?'✓ locked':'';}
+      else{document.getElementById('p1fill').style.width='100%';document.getElementById('p1lock').textContent='✓ locked';document.getElementById('p1n').textContent='done';}
+      if(ph==='emotions'||ph==='done'){document.getElementById('p2fill').style.width=f.pct+'%';document.getElementById('p2n').textContent=f.done+'/'+f.total;}
+      document.getElementById('pcur').textContent=(ph==='done')?'✅ complete':('▸ '+(f.current||''));
+    }else box.style.display='none';
+  }catch(e){document.getElementById('phaseBox').style.display='none';}
+}
+async function loadData(){
+  try{const D=await(await fetch(STORE+'studio_data.json?'+Date.now())).json();
     try{CE=await(await fetch(STORE+'castemotions.json?'+Date.now())).json();}catch(e){}
-    const s=JSON.stringify([D.style_blend,D.emotion_styles,D.blends.map(b=>b.id),D.entities.map(e=>[e.slug,e.thumb]),Object.keys(QC).length]);
-    if(s!==sig){sig=s;render()}
+    const s=JSON.stringify([D.count,D.entities.map(e=>[e.slug,e.thumb])]);
+    document.getElementById('castN').textContent=(D.count||0)+' entities ready';
+    if(s!==sig){sig=s;
+      document.getElementById('entCount').textContent=D.count||0;
+      document.getElementById('entities').innerHTML=(D.entities||[]).map(e=>
+        `<div class="ent" onclick="openEmo('${e.slug}')"><img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div></div>`).join('');
+    }
   }catch(e){}
 }
-function render(){
-  const byId=Object.fromEntries(D.blends.map(b=>[b.id,b.name]));
-  document.getElementById('projBlend').innerHTML='<option value="">— none —</option>'+
-    D.blends.map(b=>`<option value="${b.id}" ${D.style_blend===b.id?'selected':''}>${b.name} (${b.loras.length})</option>`).join('');
-  document.getElementById('emoPick').innerHTML=D.variations.map(v=>`<option>${v}</option>`).join('');
-  document.getElementById('emoBlend').innerHTML='<option value="">— clear —</option>'+D.blends.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
-  const es=D.emotion_styles||{};
-  document.getElementById('emoList').innerHTML=Object.keys(es).length?Object.entries(es).map(([e,b])=>`${e} → ${byId[b]||b}`).join('<br>'):'<span class="dim">no per-emotion overrides</span>';
-  const sync=()=>{document.getElementById('emoBlend').value=es[document.getElementById('emoPick').value]||''};sync();
-  document.getElementById('emoPick').onchange=sync;
-  document.getElementById('entCount').textContent=D.count;
-  const BADGE={golden:'🥇',blend:'🧬',straggler:'🔥'},CLS={golden:'gold',straggler:'strag'};
-  if(QCC){document.getElementById('qcTally').innerHTML=
-    `🥇 ${QCC.golden||0} golden (your pipeline portraits) · 🧬 ${QCC.blend||0} blend (top-20 scraped) · 🔥 ${QCC.straggler||0} straggler (poor refs)`;}
-  document.getElementById('entities').innerHTML=D.entities.map(e=>{
-    const q=QC[e.slug]||{},m=q.method;
-    const badge=m?`<span class="m">${BADGE[m]||''}</span>`:'';
-    const chip=q.denoise!=null?`<span class="qc">d${q.denoise}${q.sat!=null?'·s'+q.sat:''}</span>`:'';
-    return `<div class="ent ${selEnt.has(e.slug)?'sel':''} ${CLS[m]||''}" data-slug="${e.slug}">${badge}<span class="pk ${selEnt.has(e.slug)?'on':''}" data-pk title="select for delete"></span><img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div>${chip}</div>`;}).join('');
-  document.querySelectorAll('#entities .ent').forEach(c=>{
-    const s=c.dataset.slug;
-    c.querySelector('[data-pk]').onclick=(ev)=>{ev.stopPropagation();selEnt.has(s)?selEnt.delete(s):selEnt.add(s);c.classList.toggle('sel');c.querySelector('.pk').classList.toggle('on');updateDelBar();};
-    c.onclick=()=>openEmotions(s);});
-  updateDelBar();
-  const tb=document.getElementById('trainBlend');
-  const folders=D.out_folders||[];
-  tb.innerHTML='<option value="">— pick a built style folder —</option>'+folders.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
-  document.getElementById('trainBtn').disabled=!folders.length;
+function openEmo(slug){
+  const em=(CE&&CE.entities&&CE.entities[slug])||[];
+  document.getElementById('emoTitle').textContent=slug.replace(/_/g,' ')+' · '+em.length+' emotions';
+  document.getElementById('emoGrid').innerHTML=em.length?em.map(x=>`<div class="ent"><img loading="lazy" src="${x.thumb}"><div>${x.emotion}</div></div>`).join(''):'<div class="dim" style="padding:20px">no emotions yet — run the pipeline (they fill in here as they render).</div>';
+  document.getElementById('emoModal').style.display='block';
 }
-document.getElementById('trainBtn').onclick=()=>{
-  const bid=document.getElementById('trainBlend').value;
-  if(!bid){toast('pick a built style folder first');return}
-  const btn=document.getElementById('trainBtn');btn.disabled=true;btn.textContent='🔥 SENDING…';
-  (async()=>{
-    try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'train_style',payload:{blend:bid}})});
-      toast(r.ok?'train queued — starts when ComfyUI is closed on the PC':'failed')}catch(e){toast('offline?')}
-    setTimeout(()=>{btn.disabled=false;btn.textContent='🔥 TRAIN THIS STYLE → LoRA'},2500);
-  })();
-};
-document.getElementById('projBlend').onchange=async()=>{
-  const v=document.getElementById('projBlend').value;
-  toast('assigning…');(await cmd('set_style',{blend:v||null}))?toast('project blend set'):toast('failed');
-};
-document.getElementById('emoBlend').onchange=async()=>{
-  const emo=document.getElementById('emoPick').value,v=document.getElementById('emoBlend').value;
-  toast('assigning…');(await cmd('set_style',{emotion:emo,blend:v||null}))?toast(emo+' set'):toast('failed');
-};
-let facArmed=false;
-document.getElementById('factory').onclick=async()=>{
-  const b=document.getElementById('factory');
-  if(!facArmed){facArmed=true;b.textContent='⚠ TAP AGAIN — runs the whole cast';setTimeout(()=>{facArmed=false;b.textContent='🏭 FACTORY — render all entities in the assigned blend'},3500);return}
-  facArmed=false;b.textContent='🏭 SENDING…';
-  (await cmd('factory',{charts:'anchor'}))?toast('factory started on the 4080'):toast('failed');
-  setTimeout(()=>b.textContent='🏭 FACTORY — render all entities in the assigned blend',2500);
-};
-// CAST multiselect + delete — bury entities whose reference you want to redo
-function updateDelBar(){
-  const bar=document.getElementById('delBar');if(!bar)return;
-  bar.style.display=selEnt.size?'flex':'none';
-  if(!selEnt.size)delArmed=false;
-  if(!delArmed)document.getElementById('delBtn').textContent='🗑 DELETE '+selEnt.size;
-}
-document.getElementById('delClear').onclick=()=>{
-  selEnt.clear();document.querySelectorAll('#entities .ent.sel').forEach(c=>c.classList.remove('sel'));updateDelBar();
-};
-document.getElementById('delBtn').onclick=async()=>{
-  if(!selEnt.size)return;
-  const b=document.getElementById('delBtn');
-  if(!delArmed){delArmed=true;b.textContent='⚠ TAP AGAIN TO DELETE '+selEnt.size;
-    setTimeout(()=>{delArmed=false;if(selEnt.size)b.textContent='🗑 DELETE '+selEnt.size;},3500);return;}
-  delArmed=false;const slugs=[...selEnt];b.textContent='🗑 DELETING…';
-  const ok=await cmd('delete_entity',{slugs});
-  toast(ok?('delete queued — '+slugs.length+' buried · redo with a new reference'):'failed — is the bridge up?');
-  selEnt.clear();updateDelBar();
-};
-// PREVIEW A STYLE — reads blendview.json (published by blendview_publish.py on
-// the PC, straight off disk) so you can eyeball a style's rendered cast here.
-let BV=null,bvSig='';
-async function loadBlendView(){
-  try{BV=await(await fetch(STORE+'blendview.json?'+Date.now())).json();}catch(e){return}
-  const sel=document.getElementById('viewStyle');
-  const sig=JSON.stringify((BV.styles||[]).map(s=>[s.id,s.count]));
-  if(sig!==bvSig){
-    bvSig=sig;const cur=sel.value;
-    sel.innerHTML='<option value="">— pick a built style ('+(BV.styles||[]).length+') —</option>'+
-      (BV.styles||[]).map(s=>`<option value="${s.id}" ${s.id===cur?'selected':''}>${s.name} (${s.count})</option>`).join('');
-  }
-  renderView();
-}
-// MOTHERLODE — tap preview sprites to pick favorites; they land in the master
-// training folder on the PC and feed every future LoRA train.
-let lode=new Set();   // "style||slug"
-function renderView(){
-  const id=document.getElementById('viewStyle').value;
-  const st=(BV&&BV.styles||[]).find(s=>s.id===id);
-  const grid=document.getElementById('viewGrid'),meta=document.getElementById('viewMeta');
-  const has=BV&&BV.styles&&BV.styles.length;
-  updateLodeBar();
-  if(!st){grid.innerHTML='';meta.textContent=has?('updated '+BV.updated+' · '+(BV.total||0)+' sprites in '+BV.styles.length+' styles — pick one above'):'no preview yet — start a BUILD LIBRARY on the ② TOURNEY page';return}
-  meta.textContent=st.count+' philosophers · updated '+BV.updated+' · tap sprites to pick for ⭐ MOTHERLODE';
-  grid.innerHTML=st.sprites.map(s=>{const k=st.id+'||'+s.slug,on=lode.has(k);
-    return `<div class="ent" onclick="togLode('${st.id}','${s.slug}')" style="cursor:pointer;${on?'outline:2px solid var(--gold);border-radius:8px':''}"><img loading="lazy" decoding="async" src="${s.thumb}">${on?'<div style="position:absolute;margin-top:-24px;margin-left:4px">⭐</div>':''}<div>${s.slug.replace(/_/g,' ')}</div></div>`;}).join('');
-}
-function togLode(style,slug){const k=style+'||'+slug;lode.has(k)?lode.delete(k):lode.add(k);renderView();}
-function updateLodeBar(){
-  const bar=document.getElementById('lodeBar');if(!bar)return;
-  bar.style.display=lode.size?'flex':'none';
-  document.getElementById('lodeCount').textContent=lode.size;
-}
-document.getElementById('lodeSend').onclick=async function(){
-  const items=[...lode].map(k=>{const [style,slug]=k.split('||');return {style,slug};});
-  this.disabled=true;
-  try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'motherlode_add',payload:{items}})});
-    toast(r.ok?('⭐ '+items.length+' sent to the MOTHERLODE — they now feed every training run'):'failed — bridge up?');
-    if(r.ok)lode.clear();}catch(e){toast('offline?')}
-  this.disabled=false;renderView();
-};
-document.getElementById('viewStyle').onchange=renderView;
-// ⭐ MOTHERLODE card — the master training set (published by the PC watcher)
-let LD=null,ldMark=new Set(),ldSig='';
-async function loadLode(){
-  try{LD=await(await fetch(STORE+'motherlode.json?'+Date.now())).json();}catch(e){return}
-  const t=LD.train||{},lo=LD.loop||{},co=LD.corpus||{};
-  const sig=(LD.updated||'')+'|'+(LD.total||0)+'|'+(t.pct||'')+'|'+(t.at||'')+'|'+(lo.pct||'')+'|'+(lo.at||'')+'|'+(LD.cycle_count||'')+'|'+(co.kept||'')+'|'+(co.at||'');
-  if(sig===ldSig&&!ldMark.size)return;ldSig=sig;renderLode();
-}
-function renderLode(){
-  const g=document.getElementById('ldGrid');
-  document.getElementById('ldMeta').textContent='· '+(LD&&LD.total||0)+' sprites · updated '+(LD&&LD.updated||'—');
-  const cyc=document.getElementById('ldCycle');
-  if(cyc){const n=(LD&&LD.cycle_count)||0;
-    const tr=(LD&&LD.train)||null,training=tr&&tr.mode!=='done'&&tr.pct!=null;
-    if(training){cyc.style.display='inline-flex';cyc.textContent=n+1;cyc.style.borderStyle='dashed';cyc.style.opacity='.75';cyc.title='cycle '+(n+1)+' training now — solidifies when it completes';}
-    else{cyc.style.display=(n||training)?'inline-flex':'none';cyc.textContent=n;cyc.style.borderStyle='solid';cyc.style.opacity='1';cyc.title=n+' training cycles completed';}}
-  const gate=document.getElementById('ldGate');
-  if(gate){const g=LD&&LD.gate;
-    if(g&&g.score!=null){gate.style.display='block';
-      gate.innerHTML=g.pass?`<span style="color:var(--green)">🧠 gpt-4o style gate: ${g.score}/10 — "${g.reason||'this is nice'}" ✓ crystal</span>`
-                           :`<span style="color:var(--amber)">🧠 gpt-4o style gate: ${g.score}/10 — "${g.reason||''}" · keep refining (cycle ${(LD.cycle_count||0)+1} next)</span>`;}
-    else gate.style.display='none';}
-  const cp=(LD&&LD.corpus)||null,cpEl=document.getElementById('ldCorpus');
-  if(cpEl){
-    if(cp&&cp.kept!=null){cpEl.style.display='block';
-      const pct=Math.min(100,(100*cp.kept/(cp.target||10000)));
-      cpEl.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-        <span style="color:var(--gold)">🏭 10K CORPUS @ ${cp.bar||85}%+ · ${cp.tried||0} rendered</span>
-        <span class="dim">${cp.kept}/${cp.target||10000}</span></div>
-      <div style="height:13px;background:#0d0d11;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;min-width:2px;background:linear-gradient(90deg,var(--gold),#4ade80);transition:width 1s"></div></div>`;
-    }else cpEl.style.display='none';
-  }
-  const lp=(LD&&LD.loop)||null,lpEl=document.getElementById('ldLoopProg');
-  if(lpEl){
-    if(lp&&lp.pct!=null){lpEl.style.display='block';
-      lpEl.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-        <span style="color:var(--cyan)">🎨 ${lp.stage||'rendering'}</span>
-        <span class="dim">${lp.done||0}/${lp.total||81}</span></div>
-      <div style="height:10px;background:#0d0d11;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-        <div style="height:100%;width:${lp.pct}%;background:linear-gradient(90deg,var(--cyan),#4ade80);transition:width 1s"></div></div>`;
-    }else lpEl.style.display='none';
-  }
-  const t=(LD&&LD.train)||null,tp=document.getElementById('ldTrainProg');
-  if(tp){
-    if(t&&t.mode!=='done'&&t.pct!=null){
-      tp.style.display='block';
-      tp.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-        <span style="color:var(--gold)">🔥 TRAINING MOTHERLODE ${t.mode==='estimate'?'(estimated)':''}</span>
-        <span class="dim">step ${t.step||'?'}/${t.total||'?'} · ~${t.eta||'?'} left${t.loss?' · loss '+t.loss:''}</span></div>
-      <div style="height:10px;background:#0d0d11;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-        <div style="height:100%;width:${t.pct}%;background:linear-gradient(90deg,var(--gold),#f0abfc);transition:width 1s"></div></div>`;
-    }else if(t&&t.mode==='done'){
-      tp.style.display='block';
-      tp.innerHTML=`<div style="font-size:12px;color:var(--green)">✅ MOTHERLODE style trained (${t.at||''}) — motherlode-style-LATEST.safetensors ready</div>`;
-    }else tp.style.display='none';
-  }
-  document.getElementById('ldRemBar').style.display=ldMark.size?'block':'none';
-  document.getElementById('ldRemCount').textContent=ldMark.size;
-  const items=(LD&&LD.items)||[];
-  if(!items.length){g.innerHTML='<div class="dim" style="padding:10px">empty — pick favorites in PREVIEW A STYLE above and tap ⭐ ADD TO MOTHERLODE</div>';return;}
-  // group by style prefix (<style>__<slug>-<emotion>.png) with row-level select-all
-  const groups={};items.forEach(it=>{const st=it.file.split('__')[0]||'other';(groups[st]=groups[st]||[]).push(it);});
-  g.innerHTML=Object.entries(groups).map(([st,arr])=>{
-    const sel=arr.filter(it=>ldMark.has(it.file)).length;
-    return `<div style="display:flex;align-items:center;gap:8px;margin:12px 0 6px">
-      <span style="font-family:Consolas,monospace;font-size:11px;color:var(--gold)">${st}</span>
-      <span class="dim">${arr.length} sprites${sel?' · '+sel+' marked':''}</span>
-      <button onclick="togLdGroup('${st.replace(/'/g,"\\'")}',true)" style="margin-left:auto;font-size:10.5px;padding:5px 10px;min-height:32px;color:var(--red);border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.08)">MARK ALL</button>
-      <button onclick="togLdGroup('${st.replace(/'/g,"\\'")}',false)" style="font-size:10.5px;padding:5px 10px;min-height:32px;color:var(--faint);border-color:var(--border);background:transparent">CLEAR</button>
-    </div>
-    `+chunk(arr,LODE_COLS).map((row,ri)=>{
-      const allOn=row.every(it=>ldMark.has(it.file));
-      return `<div style="display:grid;grid-template-columns:30px repeat(${LODE_COLS},1fr);gap:6px;margin-bottom:6px;align-items:stretch">
-        <button onclick="togLdRow('${st.replace(/'/g,"\\'")}',${ri})" title="select/clear this row" style="min-height:0;padding:0;font-size:13px;border-radius:8px;${allOn?'color:#0a0a0c;background:var(--red);border-color:var(--red)':'color:var(--red);border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.07)'}">${allOn?'✓':'▸'}</button>`+
-        row.map(it=>{const on=ldMark.has(it.file);
-          return `<div class="ent" onclick="togLdMark('${it.file.replace(/'/g,"\\'")}')" style="cursor:pointer;${on?'outline:2px solid var(--red);border-radius:8px;opacity:.7':''}"><img loading="lazy" decoding="async" src="${it.thumb}"><div style="font-size:8.5px">${it.file.replace('.png','').split('__').slice(1).join(' ').replace(/_/g,' ')}</div></div>`;}).join('')+
-        '</div>';}).join('');
-  }).join('');
-}
-const LODE_COLS=window.innerWidth>900?9:(window.innerWidth>600?6:4);
-function chunk(a,n){const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o;}
-function openCycles(){
-  const done=(LD&&LD.cycles)||[];
-  const stamps=(LD&&LD.stamps)||{};
-  const tr=(LD&&LD.train)||null,training=tr&&tr.mode!=='done'&&tr.pct!=null;
-  const g=(LD&&LD.gate)||null;
-  let rows=done.map(c=>{
-    const st=c.stamp||stamps[String(c.cycle)];
-    return `<div style="display:flex;gap:12px;align-items:center;border-bottom:1px solid #1c1c24;padding:10px 0">
-      <span style="width:34px;height:34px;min-width:34px;border-radius:50%;border:2px solid var(--gold);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;font-family:Consolas,monospace;font-weight:700">${c.cycle}</span>
-      ${st?`<img src="${st}" style="width:128px;height:128px;object-fit:cover;border-radius:9px;background:#000">`:`<div style="width:128px;height:128px;border-radius:9px;background:#0d0d11;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:10px;text-align:center">stamp<br>rendering…</div>`}
-      <div style="font-size:12px;line-height:1.6"><b>Cycle ${c.cycle}</b> · ${c.at||''}<br><span class="dim">${c.images||'?'} images · ${c.steps||'?'} steps · ${c.lora||''}</span></div>
-    </div>`;}).join('');
-  if(training){
-    rows+=`<div style="display:flex;gap:12px;align-items:center;padding:10px 0;opacity:.75">
-      <span style="width:34px;height:34px;min-width:34px;border-radius:50%;border:2px dashed var(--gold);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;font-family:Consolas,monospace;font-weight:700">${done.length+1}</span>
-      <div style="width:128px;height:128px;border-radius:9px;background:#0d0d11;border:1px dashed var(--gold);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:11px;text-align:center">training…<br>${tr.pct||0}%</div>
-      <div style="font-size:12px"><b>Cycle ${done.length+1}</b> — in the oven<br><span class="dim">stamp renders when it saves</span></div>
-    </div>`;}
-  if(g&&g.score!=null)rows+=`<div style="padding:10px 0;font-size:12px;color:${g.pass?'var(--green)':'var(--amber)'}">🧠 latest gate: ${g.score}/10 — "${g.reason||''}"${g.pass?' ✓ loop closed':' · loop continues'}</div>`;
-  document.getElementById('cycList').innerHTML=rows||'<div class="dim" style="padding:14px">no cycles completed yet — the first stamp lands when cycle 1 finishes training</div>';
-  document.getElementById('cycModal').style.display='block';
-}
-function closeCycles(){document.getElementById('cycModal').style.display='none';}
-function togLdMark(f){ldMark.has(f)?ldMark.delete(f):ldMark.add(f);renderLode();}
-function togLdGroup(st,on){((LD&&LD.items)||[]).forEach(it=>{if((it.file.split('__')[0]||'other')===st){on?ldMark.add(it.file):ldMark.delete(it.file);}});renderLode();}
-function togLdRow(st,ri){
-  const arr=((LD&&LD.items)||[]).filter(it=>(it.file.split('__')[0]||'other')===st);
-  const row=chunk(arr,LODE_COLS)[ri]||[];
-  const allOn=row.every(it=>ldMark.has(it.file));
-  row.forEach(it=>allOn?ldMark.delete(it.file):ldMark.add(it.file));
-  renderLode();
-}
-let ldArmed=false,ldTimer=null;const LDLBL='🔥 TRAIN — blend these sprites into a consistent style';
-document.getElementById('ldTrain').onclick=async function(){
-  const btn=this,n=(LD&&LD.total)||0;
-  if(n<24){toast('need 24+ sprites in the motherlode to train ('+n+' now)');return;}
-  if(!ldArmed){ldArmed=true;btn.style.background='#fbbf24';
-    btn.textContent='⚠️ TAP AGAIN — trains a LoRA on '+n+' sprites (~40 min, ComfyUI pauses)';
-    ldTimer=setTimeout(()=>{ldArmed=false;btn.style.background='#f0abfc';btn.textContent=LDLBL;},5000);return;}
-  clearTimeout(ldTimer);ldArmed=false;btn.disabled=true;btn.style.background='#f0abfc';btn.textContent='🔥 SENDING…';
-  try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'motherlode_train',payload:{}})});
-    toast(r.ok?'🔥 training the MOTHERLODE style — watch the ④ LOOP status line':'failed — bridge up?');}catch(e){toast('offline?')}
-  setTimeout(()=>{btn.disabled=false;btn.textContent=LDLBL;},4000);
-};
-document.getElementById('ldRemove').onclick=async function(){
-  const files=[...ldMark];this.disabled=true;
-  try{const r=await fetch(SB+'/rest/v1/studio_cmds',{method:'POST',headers:H,body:JSON.stringify({action:'motherlode_remove',payload:{files}})});
-    toast(r.ok?('🗑 removing '+files.length+' — refreshes shortly'):'failed');if(r.ok)ldMark.clear();}catch(e){toast('offline?')}
-  this.disabled=false;renderLode();
-};
-loadLode();setInterval(loadLode,15000);
-loadBlendView();setInterval(loadBlendView,20000);
-load();setInterval(load,5000);
+function closeEmo(){document.getElementById('emoModal').style.display='none';}
+toggleCast();  // default on
+loadStatus();setInterval(loadStatus,4000);
+loadData();setInterval(loadData,6000);
 </script></body></html>
