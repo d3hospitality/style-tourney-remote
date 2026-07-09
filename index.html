@@ -87,8 +87,15 @@ button:disabled{opacity:.45}
 </div>
 
 <div class="card">
+  <div class="lbl">🕴 THE MANNEQUIN — <span id="dumN">…</span> pose references (the rig)</div>
+  <div class="dim" style="margin-bottom:9px">The master rig. Every entity is filtered through these: <b style="color:var(--text)">neutral</b> locks their master sprite, the other 22 drive each emotion. Pose + expression come from here; identity, clothing &amp; style are the entity's.</div>
+  <div class="grid" id="dummyGrid"></div>
+</div>
+
+<div class="card">
   <div class="lbl">CAST — <span id="entCount">0</span> · tap a face for its emotions</div>
-  <div class="grid" id="entities"></div>
+  <div class="grid" id="entities" style="min-height:20px"></div>
+  <div class="dim" id="castEmpty" style="display:none">no entities yet — add names above and RUN to build your roster on the mannequin.</div>
 </div>
 
 <div id="emoModal" onclick="if(event.target===this)closeEmo()">
@@ -162,10 +169,18 @@ async function loadData(){
     document.getElementById('castN').textContent=(D.count||0)+' entities ready';
     if(s!==sig){sig=s;
       document.getElementById('entCount').textContent=D.count||0;
+      document.getElementById('castEmpty').style.display=(D.count||0)?'none':'block';
       document.getElementById('entities').innerHTML=(D.entities||[]).map(e=>
         `<div class="ent" onclick="openEmo('${e.slug}')"><img loading="lazy" src="${e.thumb||''}"><div>${e.slug.replace(/_/g,' ')}</div></div>`).join('');
     }
   }catch(e){}
+}
+async function loadDummy(){
+  try{const d=await(await fetch(STORE+'dummy.json?'+Date.now())).json();
+    document.getElementById('dumN').textContent=d.count||0;
+    document.getElementById('dummyGrid').innerHTML=(d.items||[]).map(x=>
+      `<div class="ent" title="${x.emotion}"><img loading="lazy" src="${x.thumb}"><div${x.emotion==='neutral'?' style="color:var(--gold)"':''}>${x.emotion}</div></div>`).join('');
+  }catch(e){document.getElementById('dumN').textContent='—';}
 }
 function openEmo(slug){
   const em=(CE&&CE.entities&&CE.entities[slug])||[];
@@ -175,6 +190,7 @@ function openEmo(slug){
 }
 function closeEmo(){document.getElementById('emoModal').style.display='none';}
 toggleCast();  // default on
+loadDummy();   // the mannequin rig (static — load once)
 loadStatus();setInterval(loadStatus,4000);
 loadData();setInterval(loadData,6000);
 </script></body></html>
